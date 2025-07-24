@@ -11,6 +11,13 @@ import heroImage from '@/assets/hero-image.jpg';
 
 const Index = () => {
   const [showContactModal, setShowContactModal] = useState(false);
+  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
+  const [selectedVehicleCount, setSelectedVehicleCount] = useState(1);
+
+  const handleProceedToForm = (vehicleCount: number) => {
+    setSelectedVehicleCount(vehicleCount);
+    setShowRegistrationForm(true);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -52,7 +59,10 @@ const Index = () => {
               </div>
 
               {/* Quote Calculator */}
-              <QuoteCalculator onContactClick={() => setShowContactModal(true)} />
+              <QuoteCalculator 
+                onContactClick={() => setShowContactModal(true)} 
+                onProceedToForm={handleProceedToForm}
+              />
             </div>
 
             {/* Right Column - Hero Image */}
@@ -71,11 +81,16 @@ const Index = () => {
       </section>
 
       {/* Registration Form */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <RegistrationForm />
-        </div>
-      </section>
+      {showRegistrationForm && (
+        <section className="py-16 bg-white">
+          <div className="container mx-auto px-4">
+            <RegistrationForm 
+              vehicleCount={selectedVehicleCount}
+              onClose={() => setShowRegistrationForm(false)}
+            />
+          </div>
+        </section>
+      )}
 
       {/* Benefits Section */}
       <BenefitsSection />

@@ -7,23 +7,18 @@ import { Phone, Users } from 'lucide-react';
 
 interface QuoteCalculatorProps {
   onContactClick: () => void;
+  onProceedToForm: (vehicleCount: number) => void;
 }
 
-export const QuoteCalculator = ({ onContactClick }: QuoteCalculatorProps) => {
-  const [vehicles, setVehicles] = useState([5]);
+export const QuoteCalculator = ({ onContactClick, onProceedToForm }: QuoteCalculatorProps) => {
+  const [vehicles, setVehicles] = useState([1]);
   const [annualPay, setAnnualPay] = useState(false);
   
   const basePrice = 200; // MXN per vehicle
   const vehicleCount = vehicles[0];
   
-  // Calculate volume discounts (10% per 10 vehicles, max 50%)
-  const volumeDiscountTiers = Math.floor(vehicleCount / 10);
-  const volumeDiscount = Math.min(volumeDiscountTiers * 0.1, 0.5);
-  
-  // Calculate pricing
-  const baseTotal = vehicleCount * basePrice;
-  const afterVolumeDiscount = baseTotal * (1 - volumeDiscount);
-  const monthlyTotal = afterVolumeDiscount;
+  // Calculate pricing (no volume discounts, only annual discount)
+  const monthlyTotal = vehicleCount * basePrice;
   const annualTotal = monthlyTotal * 12 * (annualPay ? 0.9 : 1); // 10% annual discount
   
   const formatCurrency = (amount: number) => 
@@ -37,6 +32,14 @@ export const QuoteCalculator = ({ onContactClick }: QuoteCalculatorProps) => {
     <Card className="w-full max-w-2xl bg-white shadow-elevated border-0">
       <CardContent className="p-8">
         <div className="space-y-6">
+          {/* Value Proposition */}
+          <div className="text-center space-y-2 mb-6">
+            <p className="text-lg font-semibold text-foreground">
+              Activa tu escudo contra multas desde $200 MXN/mes por vehículo
+            </p>
+            <p className="text-muted-foreground">Sin trámites. Sin mordidas.</p>
+          </div>
+
           {/* Vehicle Slider */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
@@ -50,14 +53,14 @@ export const QuoteCalculator = ({ onContactClick }: QuoteCalculatorProps) => {
             <Slider
               value={vehicles}
               onValueChange={setVehicles}
-              max={100}
+              max={10}
               min={1}
               step={1}
               className="w-full"
             />
             <div className="flex justify-between text-sm text-muted-foreground">
               <span>1 vehículo</span>
-              <span>100 vehículos</span>
+              <span>10 vehículos</span>
             </div>
           </div>
 
@@ -78,14 +81,6 @@ export const QuoteCalculator = ({ onContactClick }: QuoteCalculatorProps) => {
 
           {/* Pricing Display */}
           <div className="space-y-3">
-            {volumeDiscount > 0 && (
-              <div className="text-center p-3 bg-success/10 rounded-lg">
-                <p className="text-success font-semibold">
-                  ¡Descuento por volumen aplicado: {(volumeDiscount * 100).toFixed(0)}%!
-                </p>
-              </div>
-            )}
-            
             <div className="text-center space-y-2">
               <div className="text-2xl font-bold text-foreground">
                 {formatCurrency(monthlyTotal)}/mes
@@ -101,6 +96,11 @@ export const QuoteCalculator = ({ onContactClick }: QuoteCalculatorProps) => {
               <p className="text-sm text-muted-foreground">
                 Precio base: $200 MXN por vehículo
               </p>
+              {annualPay && (
+                <p className="text-xs text-muted-foreground/80">
+                  Solo con pago anual obtienes 10% de descuento en tu suscripción.
+                </p>
+              )}
             </div>
           </div>
 
@@ -108,42 +108,27 @@ export const QuoteCalculator = ({ onContactClick }: QuoteCalculatorProps) => {
           <div className="space-y-3">
             <Button 
               size="lg" 
+              onClick={() => onProceedToForm(vehicleCount)}
               className="w-full bg-gradient-accent hover:shadow-glow transition-all duration-300 text-lg py-6"
             >
-              Proteger mi flotilla ahora
+              {vehicleCount === 1 ? "Proteger mi vehículo" : "Proteger mis vehículos"}
             </Button>
-            
-            {vehicleCount > 2 && (
-              <div className="text-center space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  ¿Más de 2 vehículos? Recibe atención personalizada
-                </p>
-                <Button 
-                  variant="outline" 
-                  onClick={onContactClick}
-                  className="border-primary text-primary hover:bg-primary hover:text-white"
-                >
-                  <Phone className="w-4 h-4 mr-2" />
-                  Contáctanos
-                </Button>
-              </div>
-            )}
           </div>
 
-          {/* Volume Benefits */}
-          {vehicleCount >= 10 && (
-            <div className="mt-4 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-              <div className="flex items-center gap-2 text-primary">
-                <Users className="w-5 h-5" />
-                <span className="font-semibold">Beneficios por volumen activos</span>
-              </div>
-              <ul className="mt-2 text-sm text-muted-foreground space-y-1">
-                <li>• Descuentos automáticos cada 10 vehículos</li>
-                <li>• Soporte prioritario para tu flotilla</li>
-                <li>• Gestión centralizada de todas las multas</li>
-              </ul>
-            </div>
-          )}
+          {/* Enterprise Contact Message */}
+          <div className="text-center space-y-2">
+            <p className="text-sm text-muted-foreground">
+              ¿Tienes más de 10 vehículos? Habla con nuestro equipo para un plan especial
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={onContactClick}
+              className="border-primary text-primary hover:bg-primary hover:text-white"
+            >
+              <Phone className="w-4 h-4 mr-2" />
+              Contáctanos
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

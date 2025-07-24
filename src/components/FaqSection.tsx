@@ -7,16 +7,16 @@ import {
 
 const faqs = [
   {
-    question: "¿Qué multas cubren?",
-    answer: "Cubrimos todas las multas de tránsito vehicular en México, incluyendo exceso de velocidad, estacionamiento indebido, semáforos, infracciones por fotomultas, y violaciones al Hoy No Circula. Nuestro servicio es válido en toda la República Mexicana."
+    question: "¿Qué incluye tu protección?",
+    answer: "Cobertura contra fotoinfracciones, trámites ante autoridades, impugnación legal, y más. Nuestro equipo se encarga de todo el proceso para que no tengas que preocuparte por las multas vehiculares."
   },
   {
     question: "¿Cómo se activan los servicios?",
     answer: "Una vez que completes tu registro y subas la documentación requerida, tu protección se activa en 24-48 horas. Te enviaremos una confirmación por email y WhatsApp. A partir de ese momento, todas las multas nuevas quedan cubiertas automáticamente."
   },
   {
-    question: "¿Qué pasa si tengo más de 100 vehículos?",
-    answer: "Para flotillas de más de 100 vehículos, ofrecemos planes empresariales personalizados con descuentos especiales, soporte dedicado 24/7, y gestión centralizada. Contáctanos para recibir una cotización personalizada que se adapte a tus necesidades específicas."
+    question: "¿Qué pasa si tengo más de 10 vehículos?",
+    answer: "Para flotillas de más de 10 vehículos, ofrecemos planes empresariales personalizados con descuentos especiales, soporte dedicado 24/7, y gestión centralizada. Contáctanos para recibir una cotización personalizada que se adapte a tus necesidades específicas."
   },
   {
     question: "¿Puedo cancelar cuando quiera?",
