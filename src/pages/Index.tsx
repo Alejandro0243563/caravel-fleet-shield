@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { QuoteCalculator } from '@/components/QuoteCalculator';
-import { RegistrationForm } from '@/components/RegistrationForm';
 import { ContactModal } from '@/components/ContactModal';
 import { BenefitsSection } from '@/components/BenefitsSection';
 import { TestimonialsSection } from '@/components/TestimonialsSection';
@@ -11,13 +10,6 @@ import heroImage from '@/assets/hero-image.jpg';
 
 const Index = () => {
   const [showContactModal, setShowContactModal] = useState(false);
-  const [showRegistrationForm, setShowRegistrationForm] = useState(false);
-  const [selectedVehicleCount, setSelectedVehicleCount] = useState(1);
-
-  const handleProceedToForm = (vehicleCount: number) => {
-    setSelectedVehicleCount(vehicleCount);
-    setShowRegistrationForm(true);
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,7 +53,6 @@ const Index = () => {
               {/* Quote Calculator */}
               <QuoteCalculator 
                 onContactClick={() => setShowContactModal(true)} 
-                onProceedToForm={handleProceedToForm}
               />
             </div>
 
@@ -80,17 +71,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Registration Form */}
-      {showRegistrationForm && (
-        <section className="py-16 bg-white">
-          <div className="container mx-auto px-4">
-            <RegistrationForm 
-              vehicleCount={selectedVehicleCount}
-              onClose={() => setShowRegistrationForm(false)}
-            />
-          </div>
-        </section>
-      )}
 
       {/* Benefits Section */}
       <BenefitsSection />

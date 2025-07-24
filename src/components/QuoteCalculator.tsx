@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Slider } from '@/components/ui/slider';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -7,10 +8,10 @@ import { Phone, Users } from 'lucide-react';
 
 interface QuoteCalculatorProps {
   onContactClick: () => void;
-  onProceedToForm: (vehicleCount: number) => void;
 }
 
-export const QuoteCalculator = ({ onContactClick, onProceedToForm }: QuoteCalculatorProps) => {
+export const QuoteCalculator = ({ onContactClick }: QuoteCalculatorProps) => {
+  const navigate = useNavigate();
   const [vehicles, setVehicles] = useState([1]);
   const [annualPay, setAnnualPay] = useState(false);
   
@@ -108,7 +109,7 @@ export const QuoteCalculator = ({ onContactClick, onProceedToForm }: QuoteCalcul
           <div className="space-y-3">
             <Button 
               size="lg" 
-              onClick={() => onProceedToForm(vehicleCount)}
+              onClick={() => navigate(`/registro?vehicles=${vehicleCount}`)}
               className="w-full bg-gradient-accent hover:shadow-glow transition-all duration-300 text-lg py-6"
             >
               {vehicleCount === 1 ? "Proteger mi vehículo" : "Proteger mis vehículos"}
