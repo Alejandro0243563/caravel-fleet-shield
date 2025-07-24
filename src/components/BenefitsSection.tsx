@@ -46,14 +46,16 @@ export const BenefitsSection = () => {
 
         {/* Main Benefits */}
         <div className="grid md:grid-cols-3 gap-8 mb-16">
-          {benefits.map((benefit, index) => (
-            <Card key={index} className="bg-white shadow-card hover:shadow-elevated transition-all duration-300 border-0">
-              <CardContent className="p-8 text-center">
-                <div className="space-y-6">
-                  {/* Icon */}
-                  <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center">
-                    <benefit.icon className="w-8 h-8 text-white" />
-                  </div>
+          {benefits.map((benefit, index) => {
+            const Icon = benefit.icon;
+            return (
+              <Card key={index} className="bg-white shadow-card hover:shadow-elevated transition-all duration-300 border-0">
+                <CardContent className="p-8 text-center">
+                  <div className="space-y-6">
+                    {/* Icon */}
+                    <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center">
+                      <Icon className="w-8 h-8 text-white" />
+                    </div>
 
                   {/* Title */}
                   <h3 className="text-xl font-bold text-foreground">
@@ -76,8 +78,9 @@ export const BenefitsSection = () => {
                   </ul>
                 </div>
               </CardContent>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
 
         {/* Additional Features */}
