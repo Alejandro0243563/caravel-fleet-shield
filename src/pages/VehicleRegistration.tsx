@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,10 @@ const VehicleRegistration = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const stripePromise = loadStripe(
+    import.meta.env.VITE_STRIPE_PK ?? ''
+  );
   
   // Get vehicle count from URL params or default to 1
   const urlParams = new URLSearchParams(location.search);
@@ -103,7 +108,7 @@ const VehicleRegistration = () => {
     });
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!isFormValid()) {
       toast({
         title: "Formulario incompleto",
@@ -113,18 +118,31 @@ const VehicleRegistration = () => {
       return;
     }
 
-    // Here would be the Stripe integration
     toast({
-      title: "Redirigiendo a pago...",
-      description: "Te estamos redirigiendo a Stripe para completar tu pago.",
+      title: 'Redirigiendo a pago...',
+      description: 'Te estamos redirigiendo a Stripe para completar tu pago.'
     });
-    
-    // Placeholder for Stripe checkout
-    console.log('Payment data:', {
-      vehicles: vehicleCount,
-      amount: formData.paymentType === 'annual' ? annualTotal : monthlyTotal,
-      paymentType: formData.paymentType,
-      formData
+
+    const stripe = await stripePromise;
+    if (!stripe) {
+      console.error('Stripe no se cargó correctamente');
+      return;
+    }
+
+    const priceId =
+      formData.paymentType === 'annual'
+        ? import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID
+        : import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
+
+    await stripe.redirectToCheckout({
+      lineItems: [{ price: priceId, quantity: vehicleCount }],
+      mode: 'subscription',
+      successUrl:
+        import.meta.env.VITE_STRIPE_SUCCESS_URL || window.location.origin,
+      cancelUrl:
+        import.meta.env.VITE_STRIPE_CANCEL_URL || window.location.href,
+      customerEmail: formData.email,
+      clientReferenceId: formData.phone,
     });
   };
 
