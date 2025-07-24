@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,8 @@ interface FormData {
   email: string;
   paymentType: 'monthly' | 'annual';
 }
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PK ?? '');
 
 const VehicleRegistration = () => {
   const location = useLocation();
@@ -72,10 +75,14 @@ const VehicleRegistration = () => {
     }
   }, [vehicleCount, formData.vehicles.length]);
 
-  const updateVehicle = (index: number, field: keyof VehicleFormData, value: any) => {
+  const updateVehicle = <K extends keyof VehicleFormData>(
+    index: number,
+    field: K,
+    value: VehicleFormData[K]
+  ) => {
     setFormData(prev => ({
       ...prev,
-      vehicles: prev.vehicles.map((vehicle, i) => 
+      vehicles: prev.vehicles.map((vehicle, i) =>
         i === index ? { ...vehicle, [field]: value } : vehicle
       )
     }));
@@ -103,7 +110,7 @@ const VehicleRegistration = () => {
     });
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!isFormValid()) {
       toast({
         title: "Formulario incompleto",
@@ -113,18 +120,40 @@ const VehicleRegistration = () => {
       return;
     }
 
-    // Here would be the Stripe integration
+    const stripe = await stripePromise;
+    if (!stripe) {
+      console.error('Stripe no se cargó correctamente');
+      return;
+    }
+
+    const priceId =
+      formData.paymentType === 'annual'
+        ? import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID
+        : import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
+
+    if (!priceId) {
+      toast({
+        title: 'Configuración incorrecta',
+        description: 'Los precios de Stripe no están definidos.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     toast({
-      title: "Redirigiendo a pago...",
-      description: "Te estamos redirigiendo a Stripe para completar tu pago.",
+      title: 'Redirigiendo a pago...',
+      description: 'Te estamos redirigiendo a Stripe para completar tu pago.'
     });
-    
-    // Placeholder for Stripe checkout
-    console.log('Payment data:', {
-      vehicles: vehicleCount,
-      amount: formData.paymentType === 'annual' ? annualTotal : monthlyTotal,
-      paymentType: formData.paymentType,
-      formData
+
+    await stripe.redirectToCheckout({
+      lineItems: [{ price: priceId, quantity: vehicleCount }],
+      mode: 'subscription',
+      successUrl:
+        import.meta.env.VITE_STRIPE_SUCCESS_URL || window.location.origin,
+      cancelUrl:
+        import.meta.env.VITE_STRIPE_CANCEL_URL || window.location.href,
+      customerEmail: formData.email,
+      clientReferenceId: formData.phone,
     });
   };
 
