@@ -39,7 +39,7 @@ const Index = () => {
               <img 
                 src="/lovable-uploads/baa877cc-6d08-4d7e-ba07-2f4a014b2a59.png" 
                 alt="CARAVEL Logo" 
-                className="h-8 w-auto"
+                className="h-16 w-auto"
               />
             </div>
             <Button 
