@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { QuoteCalculator } from '@/components/QuoteCalculator';
 import { ContactModal } from '@/components/ContactModal';
@@ -10,16 +11,36 @@ import heroImage from '@/assets/hero-image.jpg';
 
 const Index = () => {
   const [showContactModal, setShowContactModal] = useState(false);
+  const navigate = useNavigate();
+
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  const handleLogoClick = () => {
+    if (window.location.pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate('/');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <header className="border-b border-border bg-white/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="w-8 h-8 text-primary" />
-              <span className="text-2xl font-bold text-primary">CARAVEL</span>
+            <div 
+              className="flex items-center gap-2 cursor-pointer" 
+              onClick={handleLogoClick}
+            >
+              <img 
+                src="/lovable-uploads/baa877cc-6d08-4d7e-ba07-2f4a014b2a59.png" 
+                alt="CARAVEL Logo" 
+                className="h-8 w-auto"
+              />
             </div>
             <Button 
               variant="outline" 
@@ -41,9 +62,9 @@ const Index = () => {
             <div className="space-y-8">
               <div className="space-y-6">
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
-                  Tu flotilla protegida contra multas desde{' '}
-                  <span className="text-primary">$200/mes</span>{' '}
-                  por vehículo
+                  Tu vehículo blindado contra multas. Solo{' '}
+                  <span className="text-primary">$200/mes</span>.{' '}
+                  No vuelvas a pagar ni un peso.
                 </h1>
                 <p className="text-xl md:text-2xl text-muted-foreground">
                   Elimina el estrés. Nosotros nos encargamos de las multas.
@@ -122,15 +143,15 @@ const Index = () => {
               <div className="space-y-2 text-gray-300">
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4" />
-                  <span>+52 55 1234 5678</span>
+                  <span>3318497494</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4" />
-                  <span>hola@caravel.mx</span>
+                  <span>caravel@gmail.com</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
-                  <span>Ciudad de México, México</span>
+                  <span>Guadalajara, Jalisco</span>
                 </div>
               </div>
             </div>

@@ -9,7 +9,7 @@ const testimonials = [
     vehicles: "15 vehículos",
     content: "CARAVEL nos ha ahorrado miles de pesos en multas y tiempo perdido. Ahora me enfoco en hacer crecer mi negocio en lugar de lidiar con infracciones.",
     rating: 5,
-    location: "Ciudad de México"
+    location: "Guadalajara, Jalisco"
   },
   {
     id: 2,
@@ -18,7 +18,7 @@ const testimonials = [
     vehicles: "8 vehículos",
     content: "El servicio es excelente. Ya no me preocupo por las multas de mis conductores. El equipo de CARAVEL maneja todo de manera profesional y rápida.",
     rating: 5,
-    location: "Guadalajara"
+    location: "Guadalajara, Jalisco"
   },
   {
     id: 3,

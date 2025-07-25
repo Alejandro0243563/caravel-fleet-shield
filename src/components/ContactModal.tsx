@@ -93,7 +93,7 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
               type="tel"
               value={formData.phone}
               onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-              placeholder="+52 55 1234 5678"
+              placeholder="3318497494"
               required
               className="transition-all duration-200 focus:ring-2 focus:ring-accent"
             />

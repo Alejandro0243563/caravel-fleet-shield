@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Shield, Upload, CreditCard, ArrowLeft, Phone, Mail, FileText, User } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Slider } from '@/components/ui/slider';
 
 interface VehicleFormData {
   circulationCard: File | null;
@@ -147,9 +148,9 @@ const VehicleRegistration = () => {
         lineItems: [{ price: priceId, quantity: vehicleCount }],
         mode: 'subscription',
         successUrl:
-          import.meta.env.VITE_STRIPE_SUCCESS_URL || window.location.origin,
+          import.meta.env.VITE_STRIPE_SUCCESS_URL || `${window.location.origin}/success`,
         cancelUrl:
-          import.meta.env.VITE_STRIPE_CANCEL_URL || window.location.href,
+          import.meta.env.VITE_STRIPE_CANCEL_URL || `${window.location.origin}/cancel`,
         customerEmail: formData.email,
         clientReferenceId: formData.phone,
       });
@@ -183,15 +184,23 @@ const VehicleRegistration = () => {
       .map(({ index }) => index);
   };
 
+  // Scroll to top when component mounts
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <header className="border-b border-border bg-white/95 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Shield className="w-8 h-8 text-primary" />
-              <span className="text-2xl font-bold text-primary">CARAVEL</span>
+              <img 
+                src="/lovable-uploads/baa877cc-6d08-4d7e-ba07-2f4a014b2a59.png" 
+                alt="CARAVEL Logo" 
+                className="h-8 w-auto"
+              />
             </div>
             <Button 
               variant="ghost" 
@@ -225,20 +234,27 @@ const VehicleRegistration = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-4">
-              <Label htmlFor="vehicle-count">Vehículos:</Label>
-              <Input
-                id="vehicle-count"
-                type="number"
-                min="1"
-                max="10"
-                value={vehicleCount}
-                onChange={(e) => setVehicleCount(Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
-                className="w-20"
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <label className="text-lg font-semibold text-foreground">
+                  Vehículos:
+                </label>
+                <div className="bg-gradient-primary text-white px-4 py-2 rounded-lg font-bold text-xl min-w-[80px] text-center">
+                  {vehicleCount}
+                </div>
+              </div>
+              <Slider
+                value={[vehicleCount]}
+                onValueChange={(value) => setVehicleCount(value[0])}
+                max={10}
+                min={1}
+                step={1}
+                className="w-full"
               />
-              <span className="text-sm text-muted-foreground">
-                (máximo 10 vehículos)
-              </span>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>1 vehículo</span>
+                <span>10 vehículos</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -364,7 +380,7 @@ const VehicleRegistration = () => {
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="+52 55 1234 5678"
+                  placeholder="3318497494"
                 />
               </div>
               <div className="space-y-2">
@@ -377,7 +393,7 @@ const VehicleRegistration = () => {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="tu@correo.com"
+                  placeholder="caravel@gmail.com"
                 />
               </div>
             </div>

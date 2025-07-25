@@ -100,7 +100,7 @@ export const RegistrationForm = ({ vehicleCount, onClose }: RegistrationFormProp
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="+52 55 1234 5678"
+                  placeholder="3318497494"
                   value={formData.phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                   required
