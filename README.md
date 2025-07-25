@@ -60,6 +60,17 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
+## Stripe environment variables
+
+Copy `.env.example` to `.env` and set the following variables so the application can
+properly communicate with Stripe:
+
+- `VITE_STRIPE_PK`
+- `VITE_STRIPE_MONTHLY_PRICE_ID`
+- `VITE_STRIPE_ANNUAL_PRICE_ID`
+- `VITE_STRIPE_SUCCESS_URL`
+- `VITE_STRIPE_CANCEL_URL`
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/6eaf3054-2a20-4681-bc1b-6c20122b605f) and click on Share -> Publish.
