@@ -64,7 +64,7 @@ const Index = () => {
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
                   Tu vehículo blindado contra multas. Solo{' '}
                   <span className="text-primary">$200/mes</span>.{' '}
-                  No vuelvas a pagar ni un peso.
+                
                 </h1>
                 <p className="text-xl md:text-2xl text-muted-foreground">
                   Elimina el estrés. Nosotros nos encargamos de las multas.
