@@ -75,7 +75,7 @@ const VehicleRegistration = () => {
       );
       setFormData(prev => ({ ...prev, vehicles: newVehicles }));
     }
-  }, [vehicleCount, formData.vehicles.length]);
+  }, [vehicleCount, formData.vehicles]);
 
   const updateVehicle = (index: number, field: keyof VehicleFormData, value: any) => {
     setFormData(prev => ({
