@@ -138,16 +138,31 @@ const VehicleRegistration = () => {
         ? import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID
         : import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
 
-    await stripe.redirectToCheckout({
-      lineItems: [{ price: priceId, quantity: vehicleCount }],
-      mode: 'subscription',
-      successUrl:
-        import.meta.env.VITE_STRIPE_SUCCESS_URL || window.location.origin,
-      cancelUrl:
-        import.meta.env.VITE_STRIPE_CANCEL_URL || window.location.href,
-      customerEmail: formData.email,
-      clientReferenceId: formData.phone,
-    });
+    try {
+      const { error } = await stripe.redirectToCheckout({
+        lineItems: [{ price: priceId, quantity: vehicleCount }],
+        mode: 'subscription',
+        successUrl:
+          import.meta.env.VITE_STRIPE_SUCCESS_URL || window.location.origin,
+        cancelUrl:
+          import.meta.env.VITE_STRIPE_CANCEL_URL || window.location.href,
+        customerEmail: formData.email,
+        clientReferenceId: formData.phone,
+      });
+      if (error) {
+        toast({
+          title: 'Pago falló',
+          description: error.message,
+          variant: 'destructive',
+        });
+      }
+    } catch (err) {
+      toast({
+        title: 'Pago falló',
+        description: String(err),
+        variant: 'destructive',
+      });
+    }
   };
 
   const shouldShowIneField = (index: number) => {
