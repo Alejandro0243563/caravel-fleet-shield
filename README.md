@@ -71,6 +71,11 @@ properly communicate with Stripe:
 - `VITE_STRIPE_SUCCESS_URL`
 - `VITE_STRIPE_CANCEL_URL`
 
+If `VITE_STRIPE_PK` is missing or empty the application will show
+`IntegrationError: Please call Stripe() with your publishable key` in the
+browser console. Using the values from `.env.example` is enough for local
+development.
+
 ## How can I deploy this project?
 
 Simply open [Lovable](https://lovable.dev/projects/6eaf3054-2a20-4681-bc1b-6c20122b605f) and click on Share -> Publish.

@@ -30,9 +30,13 @@ const VehicleRegistration = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const stripePromise = loadStripe(
-    import.meta.env.VITE_STRIPE_PK ?? ''
-  );
+  const stripePk = import.meta.env.VITE_STRIPE_PK;
+  if (!stripePk) {
+    console.warn(
+      'VITE_STRIPE_PK environment variable is missing. Stripe will not be initialised.'
+    );
+  }
+  const stripePromise = stripePk ? loadStripe(stripePk) : Promise.resolve(null);
   
   // Get vehicle count from URL params or default to 1
   const urlParams = new URLSearchParams(location.search);
