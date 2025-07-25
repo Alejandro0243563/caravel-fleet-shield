@@ -125,7 +125,11 @@ const VehicleRegistration = () => {
 
     const stripe = await stripePromise;
     if (!stripe) {
-      console.error('Stripe no se cargó correctamente');
+      toast({
+        title: "Configuración incorrecta",
+        description: "Stripe no se cargó correctamente.",
+        variant: "destructive",
+      });
       return;
     }
 
