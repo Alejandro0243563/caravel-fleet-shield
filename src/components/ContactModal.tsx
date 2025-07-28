@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Phone, Mail, Building, MessageSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ContactModalProps {
   open: boolean;
@@ -22,20 +23,44 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
   });
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "¡Mensaje enviado!",
-      description: "Nuestro equipo se pondrá en contacto contigo en menos de 24 horas.",
-    });
-    onOpenChange(false);
-    setFormData({
-      name: '',
-      company: '',
-      phone: '',
-      email: '',
-      comments: ''
-    });
+    
+    try {
+      // Save lead to Supabase
+      const { error } = await supabase
+        .from('leads')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          message: `${formData.company ? `Empresa: ${formData.company}\n` : ''}${formData.comments}`,
+          status: 'nuevo'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "¡Mensaje enviado!",
+        description: "Nuestro equipo se pondrá en contacto contigo en menos de 24 horas.",
+      });
+      
+      onOpenChange(false);
+      setFormData({
+        name: '',
+        company: '',
+        phone: '',
+        email: '',
+        comments: ''
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Error al enviar el mensaje. Por favor intenta de nuevo.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (

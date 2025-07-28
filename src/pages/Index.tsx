@@ -6,11 +6,13 @@ import { ContactModal } from '@/components/ContactModal';
 import { BenefitsSection } from '@/components/BenefitsSection';
 import { TestimonialsSection } from '@/components/TestimonialsSection';
 import { FaqSection } from '@/components/FaqSection';
+import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Phone, Mail, MapPin } from 'lucide-react';
 import heroImage from '@/assets/hero-image.jpg';
 
 const Index = () => {
   const [showContactModal, setShowContactModal] = useState(false);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   // Scroll to top when component mounts
@@ -42,14 +44,15 @@ const Index = () => {
                 className="h-16 w-auto"
               />
             </div>
-            <Button 
-              variant="outline" 
-              onClick={() => setShowContactModal(true)}
-              className="border-primary text-primary hover:bg-primary hover:text-white"
-            >
-              <Phone className="w-4 h-4 mr-2" />
-              Contacto
-            </Button>
+            {user ? (
+              <Button onClick={() => navigate('/dashboard')}>
+                Mi Dashboard
+              </Button>
+            ) : (
+              <Button onClick={() => navigate('/auth')}>
+                Iniciar Sesión
+              </Button>
+            )}
           </div>
         </div>
       </header>
