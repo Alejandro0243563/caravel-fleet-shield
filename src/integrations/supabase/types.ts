@@ -14,7 +14,179 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      fines: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          document_url: string | null
+          id: string
+          status: Database["public"]["Enums"]["fine_status"]
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          document_url?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["fine_status"]
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          document_url?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["fine_status"]
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fines_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          last_payment_date: string | null
+          next_payment_date: string | null
+          status: string
+          stripe_subscription_id: string | null
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          last_payment_date?: string | null
+          next_payment_date?: string | null
+          status?: string
+          stripe_subscription_id?: string | null
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          last_payment_date?: string | null
+          next_payment_date?: string | null
+          status?: string
+          stripe_subscription_id?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          circulation_card_url: string | null
+          created_at: string
+          id: string
+          license_plate: string
+          status: Database["public"]["Enums"]["vehicle_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          circulation_card_url?: string | null
+          created_at?: string
+          id?: string
+          license_plate: string
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          circulation_card_url?: string | null
+          created_at?: string
+          id?: string
+          license_plate?: string
+          status?: Database["public"]["Enums"]["vehicle_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +195,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      fine_status: "Cubierta" | "Impugnada" | "Pendiente" | "Rechazada"
+      lead_status: "nuevo" | "gestionado"
+      user_role: "cliente" | "admin"
+      vehicle_status: "Protegido" | "En revisión" | "Pendiente" | "Inactivo"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +325,11 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      fine_status: ["Cubierta", "Impugnada", "Pendiente", "Rechazada"],
+      lead_status: ["nuevo", "gestionado"],
+      user_role: ["cliente", "admin"],
+      vehicle_status: ["Protegido", "En revisión", "Pendiente", "Inactivo"],
+    },
   },
 } as const
