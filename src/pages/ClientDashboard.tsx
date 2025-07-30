@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Car, FileText, Upload, Phone, Mail } from 'lucide-react';
+import { User, Car, FileText, Upload, Phone, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { EnhancedRegistrationForm } from '@/components/EnhancedRegistrationForm';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 
 interface Profile {
-  full_name: string;
-  phone: string;
+  telefono: string;
+  role: string;
 }
 
 interface Vehicle {
@@ -21,6 +23,8 @@ interface Vehicle {
   status: string;
   created_at: string;
   circulation_card_url?: string;
+  es_persona_moral: boolean;
+  ine_url?: string;
 }
 
 interface Fine {
@@ -39,7 +43,8 @@ const ClientDashboard = () => {
   const [fines, setFines] = useState<Fine[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingPhone, setEditingPhone] = useState(false);
-  const [newPhone, setNewPhone] = useState('');
+  const [phone, setPhone] = useState('');
+  const [showAddVehicle, setShowAddVehicle] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -52,13 +57,13 @@ const ClientDashboard = () => {
       // Fetch profile
       const { data: profileData } = await supabase
         .from('profiles')
-        .select('full_name, phone')
+        .select('*')
         .eq('user_id', user?.id)
         .single();
       
       if (profileData) {
         setProfile(profileData);
-        setNewPhone(profileData.phone || '');
+        setPhone(profileData.telefono || '');
       }
 
       // Fetch vehicles
@@ -97,12 +102,12 @@ const ClientDashboard = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ phone: newPhone })
+        .update({ telefono: phone })
         .eq('user_id', user?.id);
 
       if (error) throw error;
 
-      setProfile(prev => prev ? { ...prev, phone: newPhone } : null);
+      setProfile(prev => prev ? { ...prev, telefono: phone } : null);
       setEditingPhone(false);
       toast.success('Teléfono actualizado');
     } catch (error) {
@@ -111,10 +116,10 @@ const ClientDashboard = () => {
     }
   };
 
-  const handleFileUpload = async (file: File, vehicleId?: string) => {
+  const handleFileUpload = async (file: File, vehicleId: string, type: 'circulation' | 'ine') => {
     try {
       const fileExt = file.name.split('.').pop();
-      const fileName = `${user?.id}/${vehicleId || 'profile'}/${Date.now()}.${fileExt}`;
+      const fileName = `${type}/${user?.id}/${vehicleId}/${Date.now()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('documents')
@@ -124,17 +129,16 @@ const ClientDashboard = () => {
 
       toast.success('Archivo subido exitosamente');
       
-      // If it's a vehicle document, update the vehicle record
-      if (vehicleId) {
-        const { error: updateError } = await supabase
-          .from('vehicles')
-          .update({ circulation_card_url: fileName })
-          .eq('id', vehicleId);
+      // Update the vehicle record
+      const updateField = type === 'circulation' ? 'circulation_card_url' : 'ine_url';
+      const { error: updateError } = await supabase
+        .from('vehicles')
+        .update({ [updateField]: fileName })
+        .eq('id', vehicleId);
 
-        if (updateError) throw updateError;
-        
-        fetchUserData(); // Refresh data
-      }
+      if (updateError) throw updateError;
+      
+      fetchUserData(); // Refresh data
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error('Error al subir el archivo');
@@ -187,7 +191,7 @@ const ClientDashboard = () => {
             <div>
               <h1 className="text-xl font-bold">Mi Dashboard</h1>
               <p className="text-sm text-muted-foreground">
-                Bienvenido, {profile?.full_name || user?.email}
+                Bienvenido, {profile?.telefono || user?.phone}
               </p>
             </div>
           </div>
@@ -198,12 +202,8 @@ const ClientDashboard = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs defaultValue="vehicles" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
-              Perfil
-            </TabsTrigger>
             <TabsTrigger value="vehicles" className="flex items-center gap-2">
               <Car className="h-4 w-4" />
               Vehículos
@@ -212,102 +212,41 @@ const ClientDashboard = () => {
               <FileText className="h-4 w-4" />
               Multas
             </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Perfil
+            </TabsTrigger>
           </TabsList>
-
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Información Personal</CardTitle>
-                <CardDescription>
-                  Gestiona tu información de contacto y documentos
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="flex items-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Correo electrónico
-                    </Label>
-                    <Input value={user?.email || ''} disabled className="mt-1" />
-                  </div>
-                  <div>
-                    <Label className="flex items-center gap-2">
-                      <Phone className="h-4 w-4" />
-                      Teléfono
-                    </Label>
-                    {editingPhone ? (
-                      <div className="flex gap-2 mt-1">
-                        <Input
-                          value={newPhone}
-                          onChange={(e) => setNewPhone(e.target.value)}
-                          placeholder="Ingresa tu teléfono"
-                        />
-                        <Button onClick={updatePhone} size="sm">
-                          Guardar
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => {
-                            setEditingPhone(false);
-                            setNewPhone(profile?.phone || '');
-                          }}
-                        >
-                          Cancelar
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-2 mt-1">
-                        <Input value={profile?.phone || 'No especificado'} disabled />
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setEditingPhone(true)}
-                        >
-                          Editar
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <Label>Subir documentos personales</Label>
-                  <div className="mt-2">
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          handleFileUpload(file);
-                        }
-                      }}
-                      className="hidden"
-                      id="personal-documents"
-                    />
-                    <Button 
-                      variant="outline" 
-                      onClick={() => document.getElementById('personal-documents')?.click()}
-                      className="flex items-center gap-2"
-                    >
-                      <Upload className="h-4 w-4" />
-                      Subir INE o documento
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="vehicles">
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold">Mis Vehículos</h2>
-                <Badge variant="secondary">
-                  {vehicles.length} vehículo{vehicles.length !== 1 ? 's' : ''} registrado{vehicles.length !== 1 ? 's' : ''}
-                </Badge>
+                <div className="flex items-center gap-4">
+                  <Badge variant="secondary">
+                    {vehicles.length} vehículo{vehicles.length !== 1 ? 's' : ''} registrado{vehicles.length !== 1 ? 's' : ''}
+                  </Badge>
+                  <Dialog open={showAddVehicle} onOpenChange={setShowAddVehicle}>
+                    <DialogTrigger asChild>
+                      <Button className="flex items-center gap-2">
+                        <Plus className="h-4 w-4" />
+                        Agregar Vehículo
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl">
+                      <DialogHeader>
+                        <DialogTitle>Agregar Nuevo Vehículo</DialogTitle>
+                      </DialogHeader>
+                      <EnhancedRegistrationForm 
+                        vehicleCount={1} 
+                        onClose={() => {
+                          setShowAddVehicle(false);
+                          fetchUserData();
+                        }} 
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
 
               {vehicles.length === 0 ? (
@@ -315,9 +254,12 @@ const ClientDashboard = () => {
                   <CardContent className="text-center py-8">
                     <Car className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-lg font-medium">No tienes vehículos registrados</p>
-                    <p className="text-muted-foreground">
-                      Los vehículos se registran automáticamente cuando realizas un pago
+                    <p className="text-muted-foreground mb-4">
+                      Agrega tu primer vehículo para comenzar con la protección
                     </p>
+                    <Button onClick={() => setShowAddVehicle(true)}>
+                      Agregar Vehículo
+                    </Button>
                   </CardContent>
                 </Card>
               ) : (
@@ -336,36 +278,75 @@ const ClientDashboard = () => {
                             <p className="text-sm text-muted-foreground">
                               Registrado: {new Date(vehicle.created_at).toLocaleDateString()}
                             </p>
+                            {vehicle.es_persona_moral && (
+                              <Badge variant="outline">Persona Moral</Badge>
+                            )}
                           </div>
                           <div className="text-right space-y-2">
-                            <div>
-                              <input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleFileUpload(file, vehicle.id);
-                                  }
-                                }}
-                                className="hidden"
-                                id={`vehicle-docs-${vehicle.id}`}
-                              />
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => document.getElementById(`vehicle-docs-${vehicle.id}`)?.click()}
-                                className="flex items-center gap-2"
-                              >
-                                <Upload className="h-3 w-3" />
-                                Actualizar documentos
-                              </Button>
+                            <div className="flex gap-2">
+                              <div>
+                                <input
+                                  type="file"
+                                  accept=".pdf,.jpg,.jpeg,.png"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      handleFileUpload(file, vehicle.id, 'circulation');
+                                    }
+                                  }}
+                                  className="hidden"
+                                  id={`circulation-${vehicle.id}`}
+                                />
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => document.getElementById(`circulation-${vehicle.id}`)?.click()}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Upload className="h-3 w-3" />
+                                  Tarjeta
+                                </Button>
+                              </div>
+                              
+                              {!vehicle.es_persona_moral && (
+                                <div>
+                                  <input
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        handleFileUpload(file, vehicle.id, 'ine');
+                                      }
+                                    }}
+                                    className="hidden"
+                                    id={`ine-${vehicle.id}`}
+                                  />
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => document.getElementById(`ine-${vehicle.id}`)?.click()}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Upload className="h-3 w-3" />
+                                    INE
+                                  </Button>
+                                </div>
+                              )}
                             </div>
-                            {vehicle.circulation_card_url && (
-                              <Badge variant="outline" className="text-xs">
-                                Documentos subidos
-                              </Badge>
-                            )}
+                            
+                            <div className="flex flex-col gap-1">
+                              {vehicle.circulation_card_url && (
+                                <Badge variant="outline" className="text-xs">
+                                  Tarjeta subida
+                                </Badge>
+                              )}
+                              {vehicle.ine_url && (
+                                <Badge variant="outline" className="text-xs">
+                                  INE subido
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </CardContent>
@@ -461,6 +442,60 @@ const ClientDashboard = () => {
                 )}
               </div>
             </div>
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <Card>
+              <CardHeader>
+                <CardTitle>Información Personal</CardTitle>
+                <CardDescription>
+                  Gestiona tu información de contacto
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      <Phone className="h-4 w-4" />
+                      Teléfono
+                    </Label>
+                    {editingPhone ? (
+                      <div className="flex gap-2 mt-1">
+                        <Input
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="Ingresa tu teléfono"
+                        />
+                        <Button onClick={updatePhone} size="sm">
+                          Guardar
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => {
+                            setEditingPhone(false);
+                            setPhone(profile?.telefono || '');
+                          }}
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 mt-1">
+                        <Input value={profile?.telefono || 'No especificado'} disabled />
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setEditingPhone(true)}
+                        >
+                          Editar
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

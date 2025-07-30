@@ -91,28 +91,31 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          full_name: string | null
+          fecha_registro: string | null
           id: string
           phone: string | null
           role: Database["public"]["Enums"]["user_role"]
+          telefono: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
-          full_name?: string | null
+          fecha_registro?: string | null
           id?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          telefono?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
-          full_name?: string | null
+          fecha_registro?: string | null
           id?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"]
+          telefono?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -161,7 +164,9 @@ export type Database = {
         Row: {
           circulation_card_url: string | null
           created_at: string
+          es_persona_moral: boolean | null
           id: string
+          ine_url: string | null
           license_plate: string
           status: Database["public"]["Enums"]["vehicle_status"]
           updated_at: string
@@ -170,7 +175,9 @@ export type Database = {
         Insert: {
           circulation_card_url?: string | null
           created_at?: string
+          es_persona_moral?: boolean | null
           id?: string
+          ine_url?: string | null
           license_plate: string
           status?: Database["public"]["Enums"]["vehicle_status"]
           updated_at?: string
@@ -179,11 +186,40 @@ export type Database = {
         Update: {
           circulation_card_url?: string | null
           created_at?: string
+          es_persona_moral?: boolean | null
           id?: string
+          ine_url?: string | null
           license_plate?: string
           status?: Database["public"]["Enums"]["vehicle_status"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      verification_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          telefono: string
+          verified: boolean | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          telefono: string
+          verified?: boolean | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          telefono?: string
+          verified?: boolean | null
         }
         Relationships: []
       }

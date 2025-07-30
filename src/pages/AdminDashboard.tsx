@@ -8,27 +8,19 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { BarChart3, Users, Car, FileText, DollarSign, Plus, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { Users, Car, FileText, Plus, Eye, Edit, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface DashboardStats {
-  totalUsers: number;
-  totalVehicles: number;
-  totalFines: number;
-  totalRevenue: number;
-}
-
 interface User {
-  id: string;
-  full_name: string;
-  phone: string;
-  email: string;
+  user_id: string;
+  telefono: string;
   role: string;
   created_at: string;
-  vehicle_count?: number;
+  fecha_registro?: string;
+  vehicleCount: number;
 }
 
 interface Vehicle {
@@ -36,8 +28,13 @@ interface Vehicle {
   license_plate: string;
   status: string;
   created_at: string;
-  user_email: string;
-  user_name: string;
+  circulation_card_url?: string;
+  es_persona_moral: boolean;
+  ine_url?: string;
+  user_id: string;
+  profiles?: {
+    telefono: string;
+  };
 }
 
 interface Fine {
@@ -46,179 +43,125 @@ interface Fine {
   status: string;
   description?: string;
   created_at: string;
-  vehicle_plate: string;
-  user_name: string;
+  vehicle_id: string;
+  vehicles?: {
+    license_plate: string;
+    profiles?: {
+      telefono: string;
+    };
+  };
 }
 
-interface Lead {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  message?: string;
+interface NewFine {
+  vehicleId: string;
+  amount: string;
+  description: string;
   status: string;
-  created_at: string;
 }
 
 const AdminDashboard = () => {
-  const { user, signOut } = useAuth();
-  const [stats, setStats] = useState<DashboardStats>({ totalUsers: 0, totalVehicles: 0, totalFines: 0, totalRevenue: 0 });
+  const { signOut } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [fines, setFines] = useState<Fine[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // New fine form state
-  const [newFine, setNewFine] = useState({
-    vehicle_id: '',
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showUserDetail, setShowUserDetail] = useState(false);
+  const [showCreateFine, setShowCreateFine] = useState(false);
+  const [newFine, setNewFine] = useState<NewFine>({
+    vehicleId: '',
     amount: '',
     description: '',
-    status: 'Pendiente'
+    status: 'nueva'
   });
 
   useEffect(() => {
-    fetchAdminData();
+    fetchAllData();
   }, []);
 
-  const fetchAdminData = async () => {
+  const fetchAllData = async () => {
     try {
-      // Fetch users with vehicle count
-      const { data: usersData } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          user_id,
-          full_name,
-          phone,
-          role,
-          created_at
-        `);
-
-      // Get user emails from auth.users (we need to use a different approach)
-      const { data: vehiclesCount } = await supabase
-        .from('vehicles')
-        .select('user_id, id');
-
-      // Count vehicles per user
-      const vehicleCountByUser = vehiclesCount?.reduce((acc, vehicle) => {
-        acc[vehicle.user_id] = (acc[vehicle.user_id] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>) || {};
-
-      const enrichedUsers = usersData?.map(user => ({
-        ...user,
-        email: `user-${user.user_id.slice(0, 8)}@domain.com`, // Placeholder since we can't access auth.users directly
-        vehicle_count: vehicleCountByUser[user.user_id] || 0
-      })) || [];
-
-      setUsers(enrichedUsers);
-
-      // Fetch vehicles with user info
-      const { data: vehiclesData } = await supabase
-        .from('vehicles')
-        .select(`
-          id,
-          license_plate,
-          status,
-          created_at,
-          user_id
-        `);
-
-      // Get user names separately to avoid join issues
-      const enrichedVehicles = [];
-      if (vehiclesData) {
-        for (const vehicle of vehiclesData) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('user_id', vehicle.user_id)
-            .single();
-          
-          enrichedVehicles.push({
-            ...vehicle,
-            user_name: profile?.full_name || 'Usuario desconocido',
-            user_email: `user-${vehicle.user_id.slice(0, 8)}@domain.com`
-          });
-        }
-      }
-
-      setVehicles(enrichedVehicles);
-
-      // Fetch fines with vehicle and user info
-      const { data: finesData } = await supabase
-        .from('fines')
-        .select(`
-          id,
-          amount,
-          status,
-          description,
-          created_at,
-          vehicle_id
-        `);
-
-      // Get vehicle and user info separately
-      const enrichedFines = [];
-      if (finesData) {
-        for (const fine of finesData) {
-          const { data: vehicle } = await supabase
-            .from('vehicles')
-            .select('license_plate, user_id')
-            .eq('id', fine.vehicle_id)
-            .single();
-          
-          let userName = 'Usuario desconocido';
-          if (vehicle) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('full_name')
-              .eq('user_id', vehicle.user_id)
-              .single();
-            
-            userName = profile?.full_name || 'Usuario desconocido';
-          }
-          
-          enrichedFines.push({
-            ...fine,
-            vehicle_plate: vehicle?.license_plate || 'Desconocido',
-            user_name: userName
-          });
-        }
-      }
-
-      setFines(enrichedFines);
-
-      // Fetch leads
-      const { data: leadsData } = await supabase
-        .from('leads')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      setLeads(leadsData || []);
-
-      // Calculate stats
-      const totalRevenue = vehiclesCount?.length ? vehiclesCount.length * 200 : 0; // $200 per vehicle monthly
-      setStats({
-        totalUsers: enrichedUsers.length,
-        totalVehicles: enrichedVehicles.length,
-        totalFines: enrichedFines.length,
-        totalRevenue
-      });
-
+      await Promise.all([
+        fetchUsers(),
+        fetchVehicles(),
+        fetchFines(),
+        fetchLeads()
+      ]);
     } catch (error) {
-      console.error('Error fetching admin data:', error);
-      toast.error('Error al cargar los datos del dashboard');
+      console.error('Error fetching data:', error);
+      toast.error('Error al cargar los datos');
     } finally {
       setLoading(false);
     }
   };
 
-  const addFine = async () => {
+  const fetchUsers = async () => {
+    const { data: usersData } = await supabase
+      .from('profiles')
+      .select('user_id, telefono, role, created_at, fecha_registro');
+
+    if (usersData) {
+      // Get vehicle count for each user
+      const usersWithCounts = await Promise.all(
+        usersData.map(async (user) => {
+          const { data: vehicleData } = await supabase
+            .from('vehicles')
+            .select('id')
+            .eq('user_id', user.user_id);
+          
+          return {
+            ...user,
+            vehicleCount: vehicleData?.length || 0
+          };
+        })
+      );
+      setUsers(usersWithCounts);
+    }
+  };
+
+  const fetchVehicles = async () => {
+    const { data: vehiclesData } = await supabase
+      .from('vehicles')
+      .select('*');
+
+    if (vehiclesData) {
+      setVehicles(vehiclesData as any);
+    }
+  };
+
+  const fetchFines = async () => {
+    const { data: finesData } = await supabase
+      .from('fines')
+      .select('*');
+
+    if (finesData) {
+      setFines(finesData as any);
+    }
+  };
+
+  const fetchLeads = async () => {
+    const { data: leadsData } = await supabase
+      .from('leads')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (leadsData) {
+      setLeads(leadsData);
+    }
+  };
+
+  const handleCreateFine = async () => {
+    if (!newFine.vehicleId || !newFine.amount || !newFine.description) {
+      toast.error('Por favor completa todos los campos');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('fines')
         .insert({
-          vehicle_id: newFine.vehicle_id,
+          vehicle_id: newFine.vehicleId,
           amount: parseFloat(newFine.amount),
           description: newFine.description,
           status: newFine.status as any
@@ -226,46 +169,77 @@ const AdminDashboard = () => {
 
       if (error) throw error;
 
-      toast.success('Multa agregada exitosamente');
-      setNewFine({ vehicle_id: '', amount: '', description: '', status: 'Pendiente' });
-      fetchAdminData();
+      toast.success('Multa creada exitosamente');
+      setShowCreateFine(false);
+      setNewFine({ vehicleId: '', amount: '', description: '', status: 'nueva' });
+      fetchFines();
     } catch (error) {
-      console.error('Error adding fine:', error);
-      toast.error('Error al agregar la multa');
+      console.error('Error creating fine:', error);
+      toast.error('Error al crear la multa');
     }
   };
 
-  const updateLeadStatus = async (leadId: string, status: string) => {
+  const updateFineStatus = async (fineId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('fines')
+        .update({ status: newStatus as any })
+        .eq('id', fineId);
+
+      if (error) throw error;
+
+      toast.success('Estado actualizado');
+      fetchFines();
+    } catch (error) {
+      console.error('Error updating fine:', error);
+      toast.error('Error al actualizar el estado');
+    }
+  };
+
+  const deleteFine = async (fineId: string) => {
+    try {
+      const { error } = await supabase
+        .from('fines')
+        .delete()
+        .eq('id', fineId);
+
+      if (error) throw error;
+
+      toast.success('Multa eliminada');
+      fetchFines();
+    } catch (error) {
+      console.error('Error deleting fine:', error);
+      toast.error('Error al eliminar la multa');
+    }
+  };
+
+  const updateLeadStatus = async (leadId: string, newStatus: string) => {
     try {
       const { error } = await supabase
         .from('leads')
-        .update({ status: status as any })
+        .update({ status: newStatus as any })
         .eq('id', leadId);
 
       if (error) throw error;
 
       toast.success('Estado del lead actualizado');
-      fetchAdminData();
+      fetchLeads();
     } catch (error) {
       console.error('Error updating lead:', error);
       toast.error('Error al actualizar el lead');
     }
   };
 
-  const deleteLead = async (leadId: string) => {
-    try {
-      const { error } = await supabase
-        .from('leads')
-        .delete()
-        .eq('id', leadId);
-
-      if (error) throw error;
-
-      toast.success('Lead eliminado');
-      fetchAdminData();
-    } catch (error) {
-      console.error('Error deleting lead:', error);
-      toast.error('Error al eliminar el lead');
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Protegido': return 'bg-green-500';
+      case 'En revisión': return 'bg-yellow-500';
+      case 'Pendiente': return 'bg-orange-500';
+      case 'nueva': return 'bg-blue-500';
+      case 'en proceso': return 'bg-yellow-500';
+      case 'eliminada': return 'bg-red-500';
+      case 'Cubierta': return 'bg-green-500';
+      default: return 'bg-gray-500';
     }
   };
 
@@ -293,9 +267,7 @@ const AdminDashboard = () => {
             />
             <div>
               <h1 className="text-xl font-bold">Dashboard Administrativo</h1>
-              <p className="text-sm text-muted-foreground">
-                Panel de control maestro
-              </p>
+              <p className="text-sm text-muted-foreground">Panel de control</p>
             </div>
           </div>
           <Button variant="outline" onClick={signOut}>
@@ -305,116 +277,101 @@ const AdminDashboard = () => {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Vista General
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Usuarios
-            </TabsTrigger>
-            <TabsTrigger value="vehicles" className="flex items-center gap-2">
-              <Car className="h-4 w-4" />
-              Vehículos
-            </TabsTrigger>
-            <TabsTrigger value="fines" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Multas
-            </TabsTrigger>
-            <TabsTrigger value="subscriptions" className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Suscripciones
-            </TabsTrigger>
-            <TabsTrigger value="leads" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              CRM Leads
-            </TabsTrigger>
-          </TabsList>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-primary" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Usuarios</p>
+                  <p className="text-2xl font-bold">{users.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Car className="h-8 w-8 text-blue-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Vehículos</p>
+                  <p className="text-2xl font-bold">{vehicles.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <FileText className="h-8 w-8 text-red-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Multas</p>
+                  <p className="text-2xl font-bold">{fines.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <Users className="h-8 w-8 text-green-600" />
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-muted-foreground">Leads</p>
+                  <p className="text-2xl font-bold">{leads.length}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-          <TabsContent value="overview">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Total Usuarios</p>
-                      <p className="text-3xl font-bold">{stats.totalUsers}</p>
-                    </div>
-                    <Users className="h-8 w-8 text-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Vehículos Protegidos</p>
-                      <p className="text-3xl font-bold">{stats.totalVehicles}</p>
-                    </div>
-                    <Car className="h-8 w-8 text-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Multas Totales</p>
-                      <p className="text-3xl font-bold">{stats.totalFines}</p>
-                    </div>
-                    <FileText className="h-8 w-8 text-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">Ingresos Estimados</p>
-                      <p className="text-3xl font-bold">${stats.totalRevenue.toLocaleString()}</p>
-                    </div>
-                    <DollarSign className="h-8 w-8 text-primary" />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
+        <Tabs defaultValue="users" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="users">Usuarios</TabsTrigger>
+            <TabsTrigger value="vehicles">Vehículos</TabsTrigger>
+            <TabsTrigger value="fines">Multas</TabsTrigger>
+            <TabsTrigger value="leads">Leads</TabsTrigger>
+          </TabsList>
 
           <TabsContent value="users">
             <Card>
               <CardHeader>
                 <CardTitle>Gestión de Usuarios</CardTitle>
                 <CardDescription>
-                  Lista completa de usuarios registrados en el sistema
+                  Administra todos los usuarios registrados
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Email</TableHead>
                       <TableHead>Teléfono</TableHead>
                       <TableHead>Rol</TableHead>
                       <TableHead>Vehículos</TableHead>
-                      <TableHead>Registro</TableHead>
+                      <TableHead>Fecha Registro</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {users.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.full_name || 'No especificado'}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.phone || 'No especificado'}</TableCell>
+                      <TableRow key={user.user_id}>
+                        <TableCell>{user.telefono || 'Sin teléfono'}</TableCell>
+                        <TableCell>{user.role}</TableCell>
+                        <TableCell>{user.vehicleCount}</TableCell>
+                        <TableCell>{new Date(user.fecha_registro || user.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {user.role}
-                          </Badge>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setShowUserDetail(true);
+                            }}
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Ver
+                          </Button>
                         </TableCell>
-                        <TableCell>{user.vehicle_count}</TableCell>
-                        <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -428,7 +385,7 @@ const AdminDashboard = () => {
               <CardHeader>
                 <CardTitle>Gestión de Vehículos</CardTitle>
                 <CardDescription>
-                  Todos los vehículos registrados en el sistema
+                  Administra todos los vehículos registrados
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -437,83 +394,38 @@ const AdminDashboard = () => {
                     <TableRow>
                       <TableHead>Placas</TableHead>
                       <TableHead>Propietario</TableHead>
+                      <TableHead>Tipo</TableHead>
                       <TableHead>Estado</TableHead>
-                      <TableHead>Fecha de Alta</TableHead>
-                      <TableHead>Acciones</TableHead>
+                      <TableHead>Documentos</TableHead>
+                      <TableHead>Fecha</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {vehicles.map((vehicle) => (
                       <TableRow key={vehicle.id}>
                         <TableCell className="font-medium">{vehicle.license_plate}</TableCell>
-                        <TableCell>{vehicle.user_name}</TableCell>
+                        <TableCell>{vehicle.profiles?.telefono || 'Sin teléfono'}</TableCell>
                         <TableCell>
-                          <Badge variant={vehicle.status === 'Protegido' ? 'default' : 'secondary'}>
+                          <Badge variant={vehicle.es_persona_moral ? "default" : "outline"}>
+                            {vehicle.es_persona_moral ? 'Persona Moral' : 'Persona Física'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(vehicle.status)}>
                             {vehicle.status}
                           </Badge>
                         </TableCell>
-                        <TableCell>{new Date(vehicle.created_at).toLocaleDateString()}</TableCell>
                         <TableCell>
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setNewFine(prev => ({ ...prev, vehicle_id: vehicle.id }))}
-                              >
-                                <Plus className="h-3 w-3 mr-1" />
-                                Asignar Multa
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Asignar Nueva Multa</DialogTitle>
-                                <DialogDescription>
-                                  Vehículo: {vehicle.license_plate} - {vehicle.user_name}
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div>
-                                  <Label>Monto (MXN)</Label>
-                                  <Input
-                                    type="number"
-                                    value={newFine.amount}
-                                    onChange={(e) => setNewFine(prev => ({ ...prev, amount: e.target.value }))}
-                                    placeholder="Ej: 1500"
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Descripción</Label>
-                                  <Textarea
-                                    value={newFine.description}
-                                    onChange={(e) => setNewFine(prev => ({ ...prev, description: e.target.value }))}
-                                    placeholder="Descripción de la multa"
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Estado</Label>
-                                  <Select 
-                                    value={newFine.status} 
-                                    onValueChange={(value) => setNewFine(prev => ({ ...prev, status: value }))}
-                                  >
-                                    <SelectTrigger>
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="Pendiente">Pendiente</SelectItem>
-                                      <SelectItem value="Cubierta">Cubierta</SelectItem>
-                                      <SelectItem value="Impugnada">Impugnada</SelectItem>
-                                      <SelectItem value="Rechazada">Rechazada</SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <Button onClick={addFine} className="w-full">
-                                  Agregar Multa
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                          <div className="flex gap-1">
+                            {vehicle.circulation_card_url && (
+                              <Badge variant="outline" className="text-xs">Tarjeta</Badge>
+                            )}
+                            {vehicle.ine_url && (
+                              <Badge variant="outline" className="text-xs">INE</Badge>
+                            )}
+                          </div>
                         </TableCell>
+                        <TableCell>{new Date(vehicle.created_at).toLocaleDateString()}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -524,11 +436,76 @@ const AdminDashboard = () => {
 
           <TabsContent value="fines">
             <Card>
-              <CardHeader>
-                <CardTitle>Gestión de Multas</CardTitle>
-                <CardDescription>
-                  Registro completo de multas en el sistema
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>Gestión de Multas</CardTitle>
+                  <CardDescription>
+                    Administra todas las multas del sistema
+                  </CardDescription>
+                </div>
+                <Dialog open={showCreateFine} onOpenChange={setShowCreateFine}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nueva Multa
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Crear Nueva Multa</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Vehículo</Label>
+                        <Select value={newFine.vehicleId} onValueChange={(value) => setNewFine({...newFine, vehicleId: value})}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecciona un vehículo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {vehicles.map((vehicle) => (
+                              <SelectItem key={vehicle.id} value={vehicle.id}>
+                                {vehicle.license_plate} - {vehicle.profiles?.telefono}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label>Monto</Label>
+                        <Input
+                          type="number"
+                          value={newFine.amount}
+                          onChange={(e) => setNewFine({...newFine, amount: e.target.value})}
+                          placeholder="Monto de la multa"
+                        />
+                      </div>
+                      <div>
+                        <Label>Descripción</Label>
+                        <Textarea
+                          value={newFine.description}
+                          onChange={(e) => setNewFine({...newFine, description: e.target.value})}
+                          placeholder="Descripción de la multa"
+                        />
+                      </div>
+                      <div>
+                        <Label>Estado</Label>
+                        <Select value={newFine.status} onValueChange={(value) => setNewFine({...newFine, status: value})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="nueva">Nueva</SelectItem>
+                            <SelectItem value="en proceso">En Proceso</SelectItem>
+                            <SelectItem value="eliminada">Eliminada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button onClick={handleCreateFine} className="w-full">
+                        Crear Multa
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -540,23 +517,41 @@ const AdminDashboard = () => {
                       <TableHead>Estado</TableHead>
                       <TableHead>Descripción</TableHead>
                       <TableHead>Fecha</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {fines.map((fine) => (
                       <TableRow key={fine.id}>
-                        <TableCell className="font-medium">{fine.vehicle_plate}</TableCell>
-                        <TableCell>{fine.user_name}</TableCell>
-                        <TableCell className="text-destructive font-semibold">
-                          ${Number(fine.amount).toLocaleString()}
-                        </TableCell>
+                        <TableCell>{fine.vehicles?.license_plate}</TableCell>
+                        <TableCell>{fine.vehicles?.profiles?.telefono}</TableCell>
+                        <TableCell className="font-medium">${Number(fine.amount).toLocaleString()}</TableCell>
                         <TableCell>
-                          <Badge variant={fine.status === 'Cubierta' ? 'default' : 'secondary'}>
-                            {fine.status}
-                          </Badge>
+                          <Select
+                            value={fine.status}
+                            onValueChange={(value) => updateFineStatus(fine.id, value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="nueva">Nueva</SelectItem>
+                              <SelectItem value="en proceso">En Proceso</SelectItem>
+                              <SelectItem value="eliminada">Eliminada</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
-                        <TableCell>{fine.description || 'Sin descripción'}</TableCell>
+                        <TableCell className="max-w-xs truncate">{fine.description}</TableCell>
                         <TableCell>{new Date(fine.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => deleteFine(fine.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -565,32 +560,12 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="subscriptions">
-            <Card>
-              <CardHeader>
-                <CardTitle>Control de Suscripciones</CardTitle>
-                <CardDescription>
-                  Gestión de suscripciones y pagos de usuarios
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8">
-                  <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-lg font-medium">Integración con Stripe próximamente</p>
-                  <p className="text-muted-foreground">
-                    Esta sección mostrará el estado de suscripciones una vez integrado Stripe
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="leads">
             <Card>
               <CardHeader>
-                <CardTitle>CRM - Gestión de Leads</CardTitle>
+                <CardTitle>Gestión de Leads</CardTitle>
                 <CardDescription>
-                  Leads generados desde formularios de contacto
+                  Administra todos los contactos recibidos
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -598,48 +573,52 @@ const AdminDashboard = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nombre</TableHead>
-                      <TableHead>Email</TableHead>
                       <TableHead>Teléfono</TableHead>
+                      <TableHead>Email</TableHead>
                       <TableHead>Mensaje</TableHead>
                       <TableHead>Estado</TableHead>
                       <TableHead>Fecha</TableHead>
-                      <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {leads.map((lead) => (
                       <TableRow key={lead.id}>
                         <TableCell className="font-medium">{lead.name}</TableCell>
+                        <TableCell>{lead.phone}</TableCell>
                         <TableCell>{lead.email}</TableCell>
-                        <TableCell>{lead.phone || 'No especificado'}</TableCell>
-                        <TableCell className="max-w-xs truncate">{lead.message || 'Sin mensaje'}</TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="truncate">
+                            {lead.message && lead.message.length > 50 
+                              ? `${lead.message.substring(0, 50)}...` 
+                              : lead.message
+                            }
+                          </div>
+                          {lead.message && lead.message.length > 50 && (
+                            <button
+                              className="text-xs text-primary hover:underline"
+                              onClick={() => toast.info(lead.message)}
+                            >
+                              Ver completo
+                            </button>
+                          )}
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={lead.status === 'nuevo' ? 'default' : 'secondary'}>
-                            {lead.status}
-                          </Badge>
+                          <Select
+                            value={lead.status}
+                            onValueChange={(value) => updateLeadStatus(lead.id, value)}
+                          >
+                            <SelectTrigger className="w-32">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="nuevo">Nuevo</SelectItem>
+                              <SelectItem value="contactado">Contactado</SelectItem>
+                              <SelectItem value="convertido">Convertido</SelectItem>
+                              <SelectItem value="descartado">Descartado</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </TableCell>
                         <TableCell>{new Date(lead.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => updateLeadStatus(lead.id, 'gestionado')}
-                              disabled={lead.status === 'gestionado'}
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Contactado
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => deleteLead(lead.id)}
-                            >
-                              <XCircle className="h-3 w-3 mr-1" />
-                              Eliminar
-                            </Button>
-                          </div>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -649,6 +628,66 @@ const AdminDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* User Detail Modal */}
+      <Dialog open={showUserDetail} onOpenChange={setShowUserDetail}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Detalle del Usuario</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Teléfono</Label>
+                  <p className="text-lg font-medium">{selectedUser.telefono}</p>
+                </div>
+                <div>
+                  <Label>Rol</Label>
+                  <p className="text-lg font-medium">{selectedUser.role}</p>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Vehículos ({selectedUser.vehicleCount})</h3>
+                <div className="space-y-2">
+                  {vehicles
+                    .filter(v => v.user_id === selectedUser.user_id)
+                    .map(vehicle => (
+                      <div key={vehicle.id} className="flex justify-between items-center p-3 border rounded">
+                        <span>{vehicle.license_plate}</span>
+                        <Badge className={getStatusColor(vehicle.status)}>
+                          {vehicle.status}
+                        </Badge>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Multas</h3>
+                <div className="space-y-2">
+                  {fines
+                    .filter(fine => vehicles.some(v => v.id === fine.vehicle_id && v.user_id === selectedUser.user_id))
+                    .map(fine => (
+                      <div key={fine.id} className="flex justify-between items-center p-3 border rounded">
+                        <div>
+                          <span className="font-medium">${Number(fine.amount).toLocaleString()}</span>
+                          <p className="text-sm text-muted-foreground">{fine.description}</p>
+                        </div>
+                        <Badge className={getStatusColor(fine.status)}>
+                          {fine.status}
+                        </Badge>
+                      </div>
+                    ))
+                  }
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

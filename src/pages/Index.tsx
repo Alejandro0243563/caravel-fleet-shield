@@ -6,6 +6,7 @@ import { ContactModal } from '@/components/ContactModal';
 import { BenefitsSection } from '@/components/BenefitsSection';
 import { TestimonialsSection } from '@/components/TestimonialsSection';
 import { FaqSection } from '@/components/FaqSection';
+import { WhatsAppFloat } from '@/components/WhatsAppFloat';
 import { useAuth } from '@/contexts/AuthContext';
 import { Shield, Phone, Mail, MapPin } from 'lucide-react';
 import heroImage from '@/assets/hero-image.jpg';
@@ -44,15 +45,23 @@ const Index = () => {
                 className="h-16 w-auto"
               />
             </div>
-            {user ? (
-              <Button onClick={() => navigate('/dashboard')}>
-                Mi Dashboard
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline"
+                onClick={() => setShowContactModal(true)}
+              >
+                Contactar
               </Button>
-            ) : (
-              <Button onClick={() => navigate('/auth')}>
-                Iniciar Sesión
-              </Button>
-            )}
+              {user ? (
+                <Button onClick={() => navigate('/dashboard')}>
+                  Mi Dashboard
+                </Button>
+              ) : (
+                <Button onClick={() => navigate('/auth')}>
+                  Iniciar Sesión
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -186,6 +195,9 @@ const Index = () => {
         open={showContactModal} 
         onOpenChange={setShowContactModal} 
       />
+
+      {/* WhatsApp Float Button */}
+      <WhatsAppFloat />
     </div>
   );
 };

@@ -40,9 +40,25 @@ export const ContactModal = ({ open, onOpenChange }: ContactModalProps) => {
 
       if (error) throw error;
 
+      // Create WhatsApp message with form data
+      const whatsappMessage = `Hola, me interesa proteger mis vehículos con Caravel.
+
+Mis datos:
+- Nombre: ${formData.name}
+- Teléfono: ${formData.phone}
+- Email: ${formData.email}
+${formData.company ? `- Empresa: ${formData.company}` : ''}
+${formData.comments ? `- Comentarios: ${formData.comments}` : ''}
+
+¿Pueden darme más información?`;
+
+      // Open WhatsApp with the message
+      const whatsappUrl = `https://wa.me/3318497494?text=${encodeURIComponent(whatsappMessage)}`;
+      window.open(whatsappUrl, '_blank');
+
       toast({
         title: "¡Mensaje enviado!",
-        description: "Nuestro equipo se pondrá en contacto contigo en menos de 24 horas.",
+        description: "Te contactaremos pronto y se abrió WhatsApp para comunicación directa.",
       });
       
       onOpenChange(false);
