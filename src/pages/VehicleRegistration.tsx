@@ -8,9 +8,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Shield, Upload, CreditCard, ArrowLeft, Phone, Mail, FileText, User } from 'lucide-react';
+import { Shield, Upload, CreditCard, ArrowLeft, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Slider } from '@/components/ui/slider';
+import { PhoneAuthForm } from '@/components/PhoneAuthForm';
 
 interface VehicleFormData {
   circulationCard: File | null;
@@ -21,8 +22,6 @@ interface VehicleFormData {
 
 interface FormData {
   vehicles: VehicleFormData[];
-  phone: string;
-  email: string;
   paymentType: 'monthly' | 'annual';
 }
 
@@ -51,10 +50,9 @@ const VehicleRegistration = () => {
       isCorporate: false,
       sameOwnerAs: null,
     })),
-    phone: '',
-    email: '',
     paymentType: 'monthly'
   });
+  const [showAuth, setShowAuth] = useState(false);
 
   const basePrice = 200; // MXN per vehicle
   const monthlyTotal = vehicleCount * basePrice;
@@ -96,9 +94,6 @@ const VehicleRegistration = () => {
   };
 
   const isFormValid = () => {
-    // Check user data
-    if (!formData.phone || !formData.email) return false;
-    
     // Check each vehicle
     return formData.vehicles.every((vehicle, index) => {
       // Circulation card is always required
@@ -123,6 +118,14 @@ const VehicleRegistration = () => {
       return;
     }
 
+    // Show authentication modal
+    setShowAuth(true);
+  };
+
+  const handleAuthSuccess = async () => {
+    setShowAuth(false);
+
+    // Continue with payment
     toast({
       title: 'Redirigiendo a pago...',
       description: 'Te estamos redirigiendo a Stripe para completar tu pago.'
@@ -151,8 +154,6 @@ const VehicleRegistration = () => {
           import.meta.env.VITE_STRIPE_SUCCESS_URL || `${window.location.origin}/success`,
         cancelUrl:
           import.meta.env.VITE_STRIPE_CANCEL_URL || `${window.location.origin}/cancel`,
-        customerEmail: formData.email,
-        clientReferenceId: formData.phone,
       });
       if (error) {
         toast({
@@ -360,45 +361,6 @@ const VehicleRegistration = () => {
           ))}
         </div>
 
-        {/* User Information */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              Información de contacto
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2">
-                  <Phone className="w-4 h-4" />
-                  Número de teléfono *
-                </Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  placeholder="3318497494"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="w-4 h-4" />
-                  Correo electrónico *
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  placeholder="caravel@gmail.com"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Payment Options */}
         <Card className="mb-8">

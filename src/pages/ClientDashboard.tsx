@@ -179,61 +179,62 @@ const ClientDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
-      {/* Header */}
-      <div className="border-b bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
+      {/* Header - Mobile First */}
+      <div className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-40">
+        <div className="px-4 py-3 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
             <img 
               src="/lovable-uploads/baa877cc-6d08-4d7e-ba07-2f4a014b2a59.png" 
               alt="CARAVEL Logo" 
-              className="h-8 w-auto"
+              className="h-6 md:h-8 w-auto"
             />
             <div>
-              <h1 className="text-xl font-bold">Mi Dashboard</h1>
-              <p className="text-sm text-muted-foreground">
-                Bienvenido, {profile?.telefono || user?.phone}
+              <h1 className="text-lg md:text-xl font-bold">Mi Dashboard</h1>
+              <p className="text-xs md:text-sm text-muted-foreground">
+                {profile?.telefono || user?.phone}
               </p>
             </div>
           </div>
-          <Button variant="outline" onClick={signOut}>
-            Cerrar Sesión
+          <Button variant="outline" size="sm" onClick={signOut}>
+            Salir
           </Button>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="vehicles" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="vehicles" className="flex items-center gap-2">
-              <Car className="h-4 w-4" />
-              Vehículos
+      <div className="px-4 py-4 md:py-8">
+        <Tabs defaultValue="vehicles" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 h-12">
+            <TabsTrigger value="vehicles" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <Car className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline">Vehículos</span>
+              <span className="sm:hidden">Auto</span>
             </TabsTrigger>
-            <TabsTrigger value="fines" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
+            <TabsTrigger value="fines" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <FileText className="h-3 w-3 md:h-4 md:w-4" />
               Multas
             </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
-              <User className="h-4 w-4" />
+            <TabsTrigger value="profile" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <User className="h-3 w-3 md:h-4 md:w-4" />
               Perfil
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="vehicles">
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Mis Vehículos</h2>
-                <div className="flex items-center gap-4">
-                  <Badge variant="secondary">
-                    {vehicles.length} vehículo{vehicles.length !== 1 ? 's' : ''} registrado{vehicles.length !== 1 ? 's' : ''}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <h2 className="text-xl md:text-2xl font-bold">Mis Vehículos</h2>
+                <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+                  <Badge variant="secondary" className="text-xs">
+                    {vehicles.length} vehículo{vehicles.length !== 1 ? 's' : ''}
                   </Badge>
                   <Dialog open={showAddVehicle} onOpenChange={setShowAddVehicle}>
                     <DialogTrigger asChild>
-                      <Button className="flex items-center gap-2">
-                        <Plus className="h-4 w-4" />
-                        Agregar Vehículo
+                      <Button size="sm" className="flex items-center gap-1 flex-1 sm:flex-none">
+                        <Plus className="h-3 w-3 md:h-4 md:w-4" />
+                        <span className="text-xs md:text-sm">Agregar</span>
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-4xl">
+                    <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                       <DialogHeader>
                         <DialogTitle>Agregar Nuevo Vehículo</DialogTitle>
                       </DialogHeader>
@@ -251,38 +252,40 @@ const ClientDashboard = () => {
 
               {vehicles.length === 0 ? (
                 <Card>
-                  <CardContent className="text-center py-8">
-                    <Car className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <p className="text-lg font-medium">No tienes vehículos registrados</p>
-                    <p className="text-muted-foreground mb-4">
-                      Agrega tu primer vehículo para comenzar con la protección
+                  <CardContent className="text-center py-6 md:py-8">
+                    <Car className="h-8 w-8 md:h-12 md:w-12 mx-auto text-muted-foreground mb-3 md:mb-4" />
+                    <p className="text-base md:text-lg font-medium">No tienes vehículos</p>
+                    <p className="text-sm md:text-base text-muted-foreground mb-3 md:mb-4">
+                      Agrega tu primer vehículo
                     </p>
-                    <Button onClick={() => setShowAddVehicle(true)}>
+                    <Button size="sm" onClick={() => setShowAddVehicle(true)}>
                       Agregar Vehículo
                     </Button>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid gap-4">
+                <div className="grid gap-3 md:gap-4">
                   {vehicles.map((vehicle) => (
                     <Card key={vehicle.id}>
-                      <CardContent className="p-6">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-2">
-                            <h3 className="text-lg font-semibold">
-                              Placas: {vehicle.license_plate}
+                      <CardContent className="p-4 md:p-6">
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+                          <div className="space-y-2 flex-1">
+                            <h3 className="text-base md:text-lg font-semibold">
+                              {vehicle.license_plate}
                             </h3>
-                            <Badge className={getStatusColor(vehicle.status)}>
-                              {vehicle.status}
-                            </Badge>
-                            <p className="text-sm text-muted-foreground">
-                              Registrado: {new Date(vehicle.created_at).toLocaleDateString()}
+                            <div className="flex flex-wrap gap-2">
+                              <Badge className={getStatusColor(vehicle.status)}>
+                                {vehicle.status}
+                              </Badge>
+                              {vehicle.es_persona_moral && (
+                                <Badge variant="outline">Persona Moral</Badge>
+                              )}
+                            </div>
+                            <p className="text-xs md:text-sm text-muted-foreground">
+                              {new Date(vehicle.created_at).toLocaleDateString()}
                             </p>
-                            {vehicle.es_persona_moral && (
-                              <Badge variant="outline">Persona Moral</Badge>
-                            )}
                           </div>
-                          <div className="text-right space-y-2">
+                          <div className="flex flex-col gap-2 w-full sm:w-auto">
                             <div className="flex gap-2">
                               <div>
                                 <input
@@ -301,7 +304,7 @@ const ClientDashboard = () => {
                                   variant="outline" 
                                   size="sm"
                                   onClick={() => document.getElementById(`circulation-${vehicle.id}`)?.click()}
-                                  className="flex items-center gap-2"
+                                  className="flex items-center gap-1 text-xs flex-1"
                                 >
                                   <Upload className="h-3 w-3" />
                                   Tarjeta
@@ -326,7 +329,7 @@ const ClientDashboard = () => {
                                     variant="outline" 
                                     size="sm"
                                     onClick={() => document.getElementById(`ine-${vehicle.id}`)?.click()}
-                                    className="flex items-center gap-2"
+                                    className="flex items-center gap-1 text-xs flex-1"
                                   >
                                     <Upload className="h-3 w-3" />
                                     INE
@@ -335,15 +338,15 @@ const ClientDashboard = () => {
                               )}
                             </div>
                             
-                            <div className="flex flex-col gap-1">
+                            <div className="flex gap-1">
                               {vehicle.circulation_card_url && (
                                 <Badge variant="outline" className="text-xs">
-                                  Tarjeta subida
+                                  ✓ Tarjeta
                                 </Badge>
                               )}
                               {vehicle.ine_url && (
                                 <Badge variant="outline" className="text-xs">
-                                  INE subido
+                                  ✓ INE
                                 </Badge>
                               )}
                             </div>

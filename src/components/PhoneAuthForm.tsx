@@ -4,9 +4,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Phone, KeyRound } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
 
 interface PhoneAuthFormProps {
   onAuthSuccess: () => void;
@@ -18,10 +20,16 @@ export const PhoneAuthForm = ({ onAuthSuccess }: PhoneAuthFormProps) => {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [verificationId, setVerificationId] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const sendVerificationCode = async () => {
     if (!telefono || telefono.length < 10) {
       toast.error('Por favor ingresa un número de teléfono válido');
+      return;
+    }
+
+    if (!acceptedTerms) {
+      toast.error('Debes aceptar los términos y condiciones para continuar');
       return;
     }
 
@@ -191,13 +199,30 @@ export const PhoneAuthForm = ({ onAuthSuccess }: PhoneAuthFormProps) => {
             </div>
           </div>
 
-          <Button 
-            type="submit" 
-            className="w-full" 
-            disabled={isLoading || !telefono || telefono.length < 10}
-          >
-            {isLoading ? 'Enviando código...' : 'Enviar código'}
-          </Button>
+            {/* Terms and Conditions */}
+            <div className="flex items-start space-x-2">
+              <Checkbox
+                id="terms"
+                checked={acceptedTerms}
+                onCheckedChange={(checked) => setAcceptedTerms(checked as boolean)}
+                className="mt-1"
+              />
+              <Label htmlFor="terms" className="text-sm leading-relaxed">
+                Acepto los{' '}
+                <Link to="/terminos" className="text-primary hover:underline">
+                  términos y condiciones
+                </Link>{' '}
+                de servicio
+              </Label>
+            </div>
+
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoading || !telefono || telefono.length < 10 || !acceptedTerms}
+            >
+              {isLoading ? 'Enviando código...' : 'Enviar código'}
+            </Button>
         </form>
       </CardContent>
     </Card>

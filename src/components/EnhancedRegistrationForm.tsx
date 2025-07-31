@@ -16,7 +16,6 @@ interface EnhancedRegistrationFormProps {
 }
 
 export const EnhancedRegistrationForm = ({ vehicleCount, onClose }: EnhancedRegistrationFormProps) => {
-  const [step, setStep] = useState<'auth' | 'vehicles'>('auth');
   const [formData, setFormData] = useState({
     vehicles: Array.from({ length: vehicleCount }, () => ({
       plateNumber: '',
@@ -28,9 +27,6 @@ export const EnhancedRegistrationForm = ({ vehicleCount, onClose }: EnhancedRegi
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleAuthSuccess = () => {
-    setStep('vehicles');
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,9 +98,14 @@ export const EnhancedRegistrationForm = ({ vehicleCount, onClose }: EnhancedRegi
       }
 
       toast({
-        title: "¡Registro completado!",
-        description: "Tus vehículos han sido registrados exitosamente.",
+        title: "¡Vehículo registrado!",
+        description: "Redirigiendo al pago...",
       });
+      
+      // Redirect to payment (Stripe)
+      setTimeout(() => {
+        window.location.href = `/registro?vehicles=${vehicleCount}`;
+      }, 1000);
       
       if (onClose) onClose();
     } catch (error: any) {
@@ -148,13 +149,6 @@ export const EnhancedRegistrationForm = ({ vehicleCount, onClose }: EnhancedRegi
     }));
   };
 
-  if (step === 'auth') {
-    return (
-      <div className="w-full max-w-md mx-auto">
-        <PhoneAuthForm onAuthSuccess={handleAuthSuccess} />
-      </div>
-    );
-  }
 
   return (
     <Card className="w-full max-w-4xl mx-auto bg-white shadow-card">

@@ -10,6 +10,7 @@ import Success from "./pages/Success";
 import Cancel from "./pages/Cancel";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import TermsAndConditions from "./pages/TermsAndConditions";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

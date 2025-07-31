@@ -392,42 +392,57 @@ const AdminDashboard = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Placas</TableHead>
-                      <TableHead>Propietario</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Documentos</TableHead>
-                      <TableHead>Fecha</TableHead>
+                      <TableHead>Usuario</TableHead>
+                      <TableHead>Tarjeta de Circulación</TableHead>
+                      <TableHead>ID del Propietario</TableHead>
+                      <TableHead>Status Suscripción</TableHead>
+                      <TableHead>Multas</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {vehicles.map((vehicle) => (
-                      <TableRow key={vehicle.id}>
-                        <TableCell className="font-medium">{vehicle.license_plate}</TableCell>
-                        <TableCell>{vehicle.profiles?.telefono || 'Sin teléfono'}</TableCell>
-                        <TableCell>
-                          <Badge variant={vehicle.es_persona_moral ? "default" : "outline"}>
-                            {vehicle.es_persona_moral ? 'Persona Moral' : 'Persona Física'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(vehicle.status)}>
-                            {vehicle.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-1">
-                            {vehicle.circulation_card_url && (
-                              <Badge variant="outline" className="text-xs">Tarjeta</Badge>
+                    {vehicles.map((vehicle) => {
+                      const userFines = fines.filter(f => f.vehicle_id === vehicle.id);
+                      const pendingFines = userFines.filter(f => f.status === 'nueva' || f.status === 'en proceso').length;
+                      const deletedFines = userFines.filter(f => f.status === 'eliminada').length;
+                      
+                      return (
+                        <TableRow key={vehicle.id}>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <p className="font-medium">{vehicle.profiles?.telefono || 'Sin teléfono'}</p>
+                              <p className="text-xs text-muted-foreground">{vehicle.license_plate}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {vehicle.circulation_card_url ? (
+                              <Badge variant="outline" className="text-xs bg-green-50">✓ Subida</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs bg-red-50">✗ Faltante</Badge>
                             )}
-                            {vehicle.ine_url && (
-                              <Badge variant="outline" className="text-xs">INE</Badge>
+                          </TableCell>
+                          <TableCell>
+                            {vehicle.es_persona_moral ? (
+                              <Badge variant="secondary" className="text-xs">Persona Moral</Badge>
+                            ) : vehicle.ine_url ? (
+                              <Badge variant="outline" className="text-xs bg-green-50">✓ INE Subida</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-xs bg-red-50">✗ INE Faltante</Badge>
                             )}
-                          </div>
-                        </TableCell>
-                        <TableCell>{new Date(vehicle.created_at).toLocaleDateString()}</TableCell>
-                      </TableRow>
-                    ))}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(vehicle.status)}>
+                              {vehicle.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1">
+                              <p className="text-xs">Por eliminar: <span className="font-medium text-orange-600">{pendingFines}</span></p>
+                              <p className="text-xs">Eliminadas: <span className="font-medium text-green-600">{deletedFines}</span></p>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </CardContent>
