@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,13 +30,6 @@ const VehicleRegistration = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const stripePk = import.meta.env.VITE_STRIPE_PK;
-  if (!stripePk) {
-    console.warn(
-      'VITE_STRIPE_PK environment variable is missing. Stripe will not be initialised.'
-    );
-  }
-  const stripePromise = stripePk ? loadStripe(stripePk) : Promise.resolve(null);
   
   // Get vehicle count from URL params or default to 1
   const urlParams = new URLSearchParams(location.search);
@@ -128,48 +121,33 @@ const VehicleRegistration = () => {
     // Save vehicles data to localStorage before payment
     localStorage.setItem('pendingVehicles', JSON.stringify(formData.vehicles));
 
-    // Continue with payment
-    toast({
-      title: 'Redirigiendo a pago...',
-      description: 'Te estamos redirigiendo a Stripe para completar tu pago.'
-    });
-
-    const stripe = await stripePromise;
-    if (!stripe) {
-      toast({
-        title: "Configuración incorrecta",
-        description: "Stripe no se cargó correctamente.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const priceId =
-      formData.paymentType === 'annual'
-        ? import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID
-        : import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
-
     try {
-      const { error } = await stripe.redirectToCheckout({
-        lineItems: [{ price: priceId, quantity: vehicleCount }],
-        mode: 'subscription',
-        successUrl:
-          import.meta.env.VITE_STRIPE_SUCCESS_URL || `${window.location.origin}/success`,
-        cancelUrl:
-          import.meta.env.VITE_STRIPE_CANCEL_URL || `${window.location.origin}/cancel`,
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: { 
+          priceType: formData.paymentType,
+          vehicleCount: vehicleCount 
+        }
       });
+
       if (error) {
+        console.error('Error creating checkout:', error);
         toast({
-          title: 'Pago falló',
-          description: error.message,
-          variant: 'destructive',
+          title: "Error",
+          description: "Error al procesar el pago. Intenta de nuevo.",
+          variant: "destructive",
         });
+        return;
       }
-    } catch (err) {
+
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
       toast({
-        title: 'Pago falló',
-        description: String(err),
-        variant: 'destructive',
+        title: "Error",
+        description: "Error al procesar el pago. Intenta de nuevo.",
+        variant: "destructive",
       });
     }
   };

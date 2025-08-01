@@ -47,6 +47,9 @@ enable_manual_linking = false
 [functions.save-vehicles]
 verify_jwt = true
 
+[functions.create-checkout]
+verify_jwt = true
+
 [edge_runtime]
 enabled = true
 port = 54329
