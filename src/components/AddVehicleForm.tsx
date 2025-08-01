@@ -14,6 +14,7 @@ interface VehicleFormData {
   ownerIne: File | null;
   isCorporate: boolean;
   sameOwnerAs: number | null;
+  paymentType: 'monthly' | 'annual';
 }
 
 interface AddVehicleFormProps {
@@ -27,6 +28,7 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
     ownerIne: null,
     isCorporate: false,
     sameOwnerAs: null,
+    paymentType: 'monthly',
   });
 
   const stripePk = import.meta.env.VITE_STRIPE_PK;
@@ -54,7 +56,8 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
       return;
     }
 
-    // TODO: Guardar información del vehículo en la base de datos
+    // Save vehicle data to localStorage before payment
+    localStorage.setItem('pendingVehicles', JSON.stringify([vehicleData]));
 
     // Continuar con el pago
     toast({
@@ -72,7 +75,9 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
       return;
     }
 
-    const priceId = import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
+    const priceId = vehicleData.paymentType === 'annual' 
+      ? import.meta.env.VITE_STRIPE_ANNUAL_PRICE_ID 
+      : import.meta.env.VITE_STRIPE_MONTHLY_PRICE_ID;
 
     try {
       const { error } = await stripe.redirectToCheckout({
@@ -194,9 +199,50 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
         </CardContent>
       </Card>
 
-      {/* Payment Summary */}
+      {/* Payment Options */}
       <Card>
-        <CardContent className="p-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-primary" />
+            Selecciona tu plan de pago
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <RadioGroup
+            value={vehicleData.paymentType}
+            onValueChange={(value: 'monthly' | 'annual') => 
+              setVehicleData(prev => ({ ...prev, paymentType: value }))
+            }
+          >
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3 p-4 rounded-lg border">
+                <RadioGroupItem value="monthly" id="monthly" />
+                <Label htmlFor="monthly" className="flex-1 cursor-pointer">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-medium">Pago mensual</div>
+                      <div className="text-sm text-muted-foreground">$200/mes</div>
+                    </div>
+                    <div className="text-lg font-bold text-foreground">$200</div>
+                  </div>
+                </Label>
+              </div>
+              
+              <div className="flex items-center space-x-3 p-4 rounded-lg border border-primary/50 bg-primary/5">
+                <RadioGroupItem value="annual" id="annual" />
+                <Label htmlFor="annual" className="flex-1 cursor-pointer">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="font-medium">Pago anual</div>
+                      <div className="text-sm text-success font-semibold">¡Ahorra 10%! - $2,160/año</div>
+                    </div>
+                    <div className="text-lg font-bold text-foreground">$2,160</div>
+                  </div>
+                </Label>
+              </div>
+            </div>
+          </RadioGroup>
+
           <div className="bg-muted p-4 rounded-lg space-y-2">
             <h3 className="font-semibold">Resumen de tu protección adicional:</h3>
             <div className="text-sm space-y-1">
@@ -204,10 +250,30 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
                 <span>1 vehículo adicional × $200</span>
                 <span>$200/mes</span>
               </div>
-              <div className="flex justify-between font-bold text-lg">
-                <span>Total mensual</span>
-                <span>$200</span>
-              </div>
+              {vehicleData.paymentType === 'annual' && (
+                <>
+                  <div className="flex justify-between">
+                    <span>Subtotal anual</span>
+                    <span>$2,400</span>
+                  </div>
+                  <div className="flex justify-between text-success font-semibold">
+                    <span>Descuento anual (10%)</span>
+                    <span>-$240</span>
+                  </div>
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total anual</span>
+                      <span>$2,160</span>
+                    </div>
+                  </div>
+                </>
+              )}
+              {vehicleData.paymentType === 'monthly' && (
+                <div className="flex justify-between font-bold text-lg">
+                  <span>Total mensual</span>
+                  <span>$200</span>
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -228,7 +294,10 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
           className="w-full sm:w-auto bg-gradient-accent hover:shadow-glow transition-all duration-300"
         >
           <CreditCard className="w-4 h-4 mr-2" />
-          Pagar y agregar vehículo - $200/mes
+          {vehicleData.paymentType === 'annual' 
+            ? 'Pagar y agregar vehículo - $2,160/año' 
+            : 'Pagar y agregar vehículo - $200/mes'
+          }
         </Button>
       </div>
 

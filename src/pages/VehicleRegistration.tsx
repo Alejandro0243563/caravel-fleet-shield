@@ -125,6 +125,9 @@ const VehicleRegistration = () => {
   const handleAuthSuccess = async () => {
     setShowAuth(false);
 
+    // Save vehicles data to localStorage before payment
+    localStorage.setItem('pendingVehicles', JSON.stringify(formData.vehicles));
+
     // Continue with payment
     toast({
       title: 'Redirigiendo a pago...',

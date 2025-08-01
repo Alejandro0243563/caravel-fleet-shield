@@ -3,14 +3,83 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, CheckCircle, Home } from 'lucide-react';
 import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Success = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  // Scroll to top when component mounts
+  // Save vehicles after successful payment
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    
+    const saveVehiclesData = async () => {
+      // Get vehicles data from localStorage
+      const vehiclesData = localStorage.getItem('pendingVehicles');
+      if (vehiclesData) {
+        try {
+          const vehicles = JSON.parse(vehiclesData);
+          
+          // Convert Files to base64 for API
+          const vehiclesWithBase64 = await Promise.all(
+            vehicles.map(async (vehicle: any) => {
+              const result: any = {
+                isCorporate: vehicle.isCorporate,
+                sameOwnerAs: vehicle.sameOwnerAs,
+                licensePlate: vehicle.licensePlate || `TEMP-${Date.now()}`
+              };
+
+              if (vehicle.circulationCard) {
+                result.circulationCardBase64 = await fileToBase64(vehicle.circulationCard);
+              }
+              
+              if (vehicle.ownerIne) {
+                result.ownerIneBase64 = await fileToBase64(vehicle.ownerIne);
+              }
+
+              return result;
+            })
+          );
+
+          const { data, error } = await supabase.functions.invoke('save-vehicles', {
+            body: { vehicles: vehiclesWithBase64 }
+          });
+
+          if (error) {
+            console.error('Error saving vehicles:', error);
+            toast({
+              title: "Error al guardar vehículos",
+              description: "Hubo un problema al guardar la información de tus vehículos. Contacta al soporte.",
+              variant: "destructive",
+            });
+          } else {
+            console.log('Vehicles saved successfully:', data);
+            // Clear pending vehicles from localStorage
+            localStorage.removeItem('pendingVehicles');
+          }
+        } catch (error) {
+          console.error('Error processing vehicles data:', error);
+        }
+      }
+    };
+
+    saveVehiclesData();
+  }, [toast]);
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data:application/pdf;base64, prefix
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
 
   const handleGoHome = () => {
     navigate('/');
