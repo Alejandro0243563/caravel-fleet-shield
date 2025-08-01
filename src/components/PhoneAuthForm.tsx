@@ -11,10 +11,12 @@ import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
 interface PhoneAuthFormProps {
-  onAuthSuccess: () => void;
+  onAuthSuccess?: () => void;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
-export const PhoneAuthForm = ({ onAuthSuccess }: PhoneAuthFormProps) => {
+export const PhoneAuthForm = ({ onAuthSuccess, onSuccess, onCancel }: PhoneAuthFormProps) => {
   const [step, setStep] = useState<'phone' | 'verify'>('phone');
   const [telefono, setTelefono] = useState('');
   const [code, setCode] = useState('');
@@ -77,7 +79,8 @@ export const PhoneAuthForm = ({ onAuthSuccess }: PhoneAuthFormProps) => {
       }
 
       toast.success('¡Autenticación exitosa!');
-      onAuthSuccess();
+      if (onAuthSuccess) onAuthSuccess();
+      if (onSuccess) onSuccess();
     } catch (error) {
       toast.error('Error al verificar el código');
     } finally {
@@ -140,15 +143,28 @@ export const PhoneAuthForm = ({ onAuthSuccess }: PhoneAuthFormProps) => {
                 {isLoading ? 'Verificando...' : 'Verificar código'}
               </Button>
               
-              <Button 
-                type="button"
-                variant="outline" 
-                className="w-full" 
-                onClick={() => setStep('phone')}
-                disabled={isLoading}
-              >
-                Cambiar número
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={() => setStep('phone')}
+                  disabled={isLoading}
+                >
+                  Cambiar número
+                </Button>
+                {onCancel && (
+                  <Button 
+                    type="button"
+                    variant="outline" 
+                    className="flex-1" 
+                    onClick={onCancel}
+                    disabled={isLoading}
+                  >
+                    Cancelar
+                  </Button>
+                )}
+              </div>
             </div>
 
             <div className="text-center">
@@ -216,13 +232,26 @@ export const PhoneAuthForm = ({ onAuthSuccess }: PhoneAuthFormProps) => {
               </Label>
             </div>
 
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoading || !telefono || telefono.length < 10 || !acceptedTerms}
-            >
-              {isLoading ? 'Enviando código...' : 'Enviar código'}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                type="submit" 
+                className="flex-1" 
+                disabled={isLoading || !telefono || telefono.length < 10 || !acceptedTerms}
+              >
+                {isLoading ? 'Enviando código...' : 'Enviar código'}
+              </Button>
+              {onCancel && (
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  className="flex-1" 
+                  onClick={onCancel}
+                  disabled={isLoading}
+                >
+                  Cancelar
+                </Button>
+              )}
+            </div>
         </form>
       </CardContent>
     </Card>

@@ -11,6 +11,7 @@ import { User, Car, FileText, Upload, Phone, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { EnhancedRegistrationForm } from '@/components/EnhancedRegistrationForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import AddVehicleForm from '@/components/AddVehicleForm';
 
 interface Profile {
   telefono: string;
@@ -238,8 +239,7 @@ const ClientDashboard = () => {
                       <DialogHeader>
                         <DialogTitle>Agregar Nuevo Vehículo</DialogTitle>
                       </DialogHeader>
-                      <EnhancedRegistrationForm 
-                        vehicleCount={1} 
+                      <AddVehicleForm 
                         onClose={() => {
                           setShowAddVehicle(false);
                           fetchUserData();

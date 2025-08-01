@@ -118,7 +118,7 @@ const VehicleRegistration = () => {
       return;
     }
 
-    // Show authentication modal
+    // Show authentication modal first
     setShowAuth(true);
   };
 
@@ -465,6 +465,18 @@ const VehicleRegistration = () => {
           )}
         </div>
       </div>
+
+      {/* Authentication Modal */}
+      {showAuth && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <PhoneAuthForm 
+              onSuccess={handleAuthSuccess}
+              onCancel={() => setShowAuth(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
