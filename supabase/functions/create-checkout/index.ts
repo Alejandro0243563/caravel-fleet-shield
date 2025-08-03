@@ -63,41 +63,52 @@ serve(async (req) => {
     }
 
     const phone = profile?.telefono || profile?.phone || userData.user.phone;
+    const formattedPhone = phone ? `+${phone}` : null; // Add + prefix for international format
     const userEmail = userData.user.email || `${userData.user.id}@caravel.com`;
-    console.log('User contact info:', { phone, email: userEmail });
+    console.log('User contact info:', { phone, formattedPhone, email: userEmail });
 
     console.log('Initializing Stripe');
     const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
     });
 
-    // Check if customer exists by email or phone
+    console.log('Searching for existing Stripe customer');
+    // Check if customer exists by email first
     let customers = await stripe.customers.list({
       email: userEmail,
       limit: 1,
     });
+    console.log('Customer search by email result:', customers.data.length);
 
-    // If no customer found by email, try by phone
-    if (customers.data.length === 0 && phone) {
+    // If no customer found by email and we have a phone, try by phone
+    if (customers.data.length === 0 && formattedPhone) {
+      console.log('Searching by phone:', formattedPhone);
       customers = await stripe.customers.list({
-        phone: phone,
+        phone: formattedPhone,
         limit: 1,
       });
+      console.log('Customer search by phone result:', customers.data.length);
     }
 
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
+      console.log('Using existing customer:', customerId);
+    } else {
+      console.log('No existing customer found, will create new one');
     }
 
     // Calculate price based on vehicle count and type
+    console.log('Calculating prices for:', { priceType, vehicleCount });
     let unitAmount;
     if (priceType === 'annual') {
       unitAmount = vehicleCount * 59900; // $599/year per vehicle
     } else {
       unitAmount = vehicleCount * 7900; // $79/month per vehicle
     }
+    console.log('Calculated unit amount:', unitAmount);
 
+    console.log('Creating Stripe checkout session');
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
