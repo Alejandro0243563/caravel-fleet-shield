@@ -63,7 +63,7 @@ serve(async (req) => {
     }
 
     const phone = profile?.telefono || profile?.phone || userData.user.phone;
-    const formattedPhone = phone ? `+${phone}` : null; // Add + prefix for international format
+    const formattedPhone = phone ? `+${phone}` : null;
     const userEmail = userData.user.email || `${userData.user.id}@caravel.com`;
     console.log('User contact info:', { phone, formattedPhone, email: userEmail });
 
@@ -72,30 +72,20 @@ serve(async (req) => {
       apiVersion: '2023-10-16',
     });
 
-    console.log('Searching for existing Stripe customer');
-    // Check if customer exists by email first
-    let customers = await stripe.customers.list({
+    console.log('Searching for existing Stripe customer by email');
+    // Check if customer exists by email only (phone search not supported by Stripe API)
+    const customers = await stripe.customers.list({
       email: userEmail,
       limit: 1,
     });
     console.log('Customer search by email result:', customers.data.length);
-
-    // If no customer found by email and we have a phone, try by phone
-    if (customers.data.length === 0 && formattedPhone) {
-      console.log('Searching by phone:', formattedPhone);
-      customers = await stripe.customers.list({
-        phone: formattedPhone,
-        limit: 1,
-      });
-      console.log('Customer search by phone result:', customers.data.length);
-    }
 
     let customerId;
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       console.log('Using existing customer:', customerId);
     } else {
-      console.log('No existing customer found, will create new one');
+      console.log('No existing customer found, will create new one during checkout');
     }
 
     // Calculate price based on vehicle count and type
