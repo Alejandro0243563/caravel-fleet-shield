@@ -32,10 +32,12 @@ const Success = () => {
 
               if (vehicle.circulationCard) {
                 result.circulationCardBase64 = await fileToBase64(vehicle.circulationCard);
+                result.circulationCardMimeType = vehicle.circulationCard.type;
               }
               
               if (vehicle.ownerIne) {
                 result.ownerIneBase64 = await fileToBase64(vehicle.ownerIne);
+                result.ownerIneMimeType = vehicle.ownerIne.type;
               }
 
               return result;

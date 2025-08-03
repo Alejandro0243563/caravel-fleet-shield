@@ -34,15 +34,33 @@ serve(async (req) => {
     const { priceType, vehicleCount } = await req.json();
     console.log('Creating checkout for user:', userData.user.id, { priceType, vehicleCount });
 
+    // Get user profile to get phone number (since auth is phone-based)
+    const { data: profile } = await supabaseClient
+      .from('profiles')
+      .select('telefono, phone')
+      .eq('user_id', userData.user.id)
+      .single();
+
+    const phone = profile?.telefono || profile?.phone || userData.user.phone;
+    const userEmail = userData.user.email || `${userData.user.id}@caravel.com`;
+
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
       apiVersion: '2023-10-16',
     });
 
-    // Check if customer exists
-    const customers = await stripe.customers.list({
-      email: userData.user.email || '',
+    // Check if customer exists by email or phone
+    let customers = await stripe.customers.list({
+      email: userEmail,
       limit: 1,
     });
+
+    // If no customer found by email, try by phone
+    if (customers.data.length === 0 && phone) {
+      customers = await stripe.customers.list({
+        phone: phone,
+        limit: 1,
+      });
+    }
 
     let customerId;
     if (customers.data.length > 0) {
@@ -59,7 +77,7 @@ serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      customer_email: customerId ? undefined : userData.user.email,
+      customer_email: customerId ? undefined : userEmail,
       line_items: [
         {
           price_data: {

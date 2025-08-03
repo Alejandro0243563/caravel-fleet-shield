@@ -54,11 +54,16 @@ serve(async (req) => {
             .map(char => char.charCodeAt(0))
         );
         
-        const circulationFileName = `${userData.user.id}/circulation_${Date.now()}_${i}.pdf`;
+        // Determine file extension from mime type or default to pdf
+        const fileExtension = vehicleData.circulationCardMimeType ? 
+          (vehicleData.circulationCardMimeType.includes('image') ? 'jpg' : 'pdf') : 'pdf';
+        const contentType = vehicleData.circulationCardMimeType || 'application/pdf';
+        
+        const circulationFileName = `${userData.user.id}/circulation_${Date.now()}_${i}.${fileExtension}`;
         const { data: circulationUpload, error: circulationError } = await supabaseClient.storage
           .from('documents')
           .upload(circulationFileName, circulationCardBlob, {
-            contentType: 'application/pdf',
+            contentType: contentType,
             upsert: false
           });
 
@@ -79,11 +84,16 @@ serve(async (req) => {
             .map(char => char.charCodeAt(0))
         );
         
-        const ineFileName = `${userData.user.id}/ine_${Date.now()}_${i}.pdf`;
+        // Determine file extension from mime type or default to pdf
+        const fileExtension = vehicleData.ownerIneMimeType ? 
+          (vehicleData.ownerIneMimeType.includes('image') ? 'jpg' : 'pdf') : 'pdf';
+        const contentType = vehicleData.ownerIneMimeType || 'application/pdf';
+        
+        const ineFileName = `${userData.user.id}/ine_${Date.now()}_${i}.${fileExtension}`;
         const { data: ineUpload, error: ineError } = await supabaseClient.storage
           .from('documents')
           .upload(ineFileName, ineBlob, {
-            contentType: 'application/pdf',
+            contentType: contentType,
             upsert: false
           });
 
