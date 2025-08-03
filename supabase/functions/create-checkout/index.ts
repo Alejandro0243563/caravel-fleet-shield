@@ -12,7 +12,17 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('create-checkout function called');
+
   try {
+    // Check if Stripe key exists
+    const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+    if (!stripeKey) {
+      console.error('STRIPE_SECRET_KEY is missing');
+      throw new Error('STRIPE_SECRET_KEY is not configured');
+    }
+    console.log('Stripe key found');
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -22,29 +32,42 @@ serve(async (req) => {
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('No authorization header provided');
       throw new Error('No authorization header');
     }
 
     const token = authHeader.replace('Bearer ', '');
+    console.log('Attempting to authenticate user with token');
+    
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError || !userData.user) {
+      console.error('User authentication failed:', userError);
       throw new Error('User not authenticated');
     }
+    console.log('User authenticated:', userData.user.id);
 
-    const { priceType, vehicleCount } = await req.json();
-    console.log('Creating checkout for user:', userData.user.id, { priceType, vehicleCount });
+    const requestBody = await req.json();
+    const { priceType, vehicleCount } = requestBody;
+    console.log('Request data:', { priceType, vehicleCount });
 
     // Get user profile to get phone number (since auth is phone-based)
-    const { data: profile } = await supabaseClient
+    console.log('Fetching user profile');
+    const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('telefono, phone')
       .eq('user_id', userData.user.id)
       .single();
 
+    if (profileError) {
+      console.log('Profile error (might be normal for new users):', profileError);
+    }
+
     const phone = profile?.telefono || profile?.phone || userData.user.phone;
     const userEmail = userData.user.email || `${userData.user.id}@caravel.com`;
+    console.log('User contact info:', { phone, email: userEmail });
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    console.log('Initializing Stripe');
+    const stripe = new Stripe(stripeKey, {
       apiVersion: '2023-10-16',
     });
 
