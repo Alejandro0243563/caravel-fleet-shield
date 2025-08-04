@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface VehicleFormData {
+  licensePlate: string;
   circulationCard: File | null;
   ownerIne: File | null;
   isCorporate: boolean;
@@ -24,6 +25,7 @@ interface AddVehicleFormProps {
 const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
   const { toast } = useToast();
   const [vehicleData, setVehicleData] = useState<VehicleFormData>({
+    licensePlate: '',
     circulationCard: null,
     ownerIne: null,
     isCorporate: false,
@@ -37,6 +39,7 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
   };
 
   const isFormValid = () => {
+    if (!vehicleData.licensePlate.trim()) return false;
     if (!vehicleData.circulationCard) return false;
     if (!vehicleData.isCorporate && vehicleData.sameOwnerAs === null && !vehicleData.ownerIne) {
       return false;
@@ -102,6 +105,24 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* License Plate Input */}
+          <div className="space-y-2">
+            <Label htmlFor="licensePlate" className="text-sm font-medium">
+              Número de placas *
+            </Label>
+            <Input
+              id="licensePlate"
+              type="text"
+              placeholder="Ej: ABC-123-D"
+              value={vehicleData.licensePlate}
+              onChange={(e) => setVehicleData(prev => ({ 
+                ...prev, 
+                licensePlate: e.target.value.toUpperCase() 
+              }))}
+              className="uppercase"
+            />
+          </div>
+
           {/* Circulation Card Upload */}
           <div className="space-y-2">
             <Label htmlFor="circulation" className="text-sm font-medium">
