@@ -57,14 +57,29 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
       return;
     }
 
-    // Save vehicle data to localStorage before payment
-    localStorage.setItem('pendingVehicles', JSON.stringify([vehicleData]));
-
     try {
+      // Convert files to base64 for the API
+      const vehicleWithBase64: any = {
+        isCorporate: vehicleData.isCorporate,
+        sameOwnerAs: vehicleData.sameOwnerAs,
+        licensePlate: vehicleData.licensePlate
+      };
+
+      if (vehicleData.circulationCard) {
+        vehicleWithBase64.circulationCardBase64 = await fileToBase64(vehicleData.circulationCard);
+        vehicleWithBase64.circulationCardMimeType = vehicleData.circulationCard.type;
+      }
+      
+      if (vehicleData.ownerIne) {
+        vehicleWithBase64.ownerIneBase64 = await fileToBase64(vehicleData.ownerIne);
+        vehicleWithBase64.ownerIneMimeType = vehicleData.ownerIne.type;
+      }
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: { 
           priceType: vehicleData.paymentType,
-          vehicleCount: 1 
+          vehicleCount: 1,
+          vehicles: [vehicleWithBase64]
         }
       });
 
@@ -93,6 +108,20 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
 
   const shouldShowIneField = () => {
     return !vehicleData.isCorporate && vehicleData.sameOwnerAs === null;
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove the data:application/pdf;base64, prefix
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = error => reject(error);
+    });
   };
 
   return (

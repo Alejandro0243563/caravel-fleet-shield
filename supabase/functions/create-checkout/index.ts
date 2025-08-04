@@ -47,8 +47,8 @@ serve(async (req) => {
     console.log('User authenticated:', userData.user.id);
 
     const requestBody = await req.json();
-    const { priceType, vehicleCount } = requestBody;
-    console.log('Request data:', { priceType, vehicleCount });
+    const { priceType, vehicleCount, vehicles } = requestBody;
+    console.log('Request data:', { priceType, vehicleCount, vehiclesCount: vehicles?.length });
 
     // Get user profile to get phone number (since auth is phone-based)
     console.log('Fetching user profile');
@@ -124,6 +124,100 @@ serve(async (req) => {
     });
 
     console.log('Checkout session created:', session.id);
+
+    // Save vehicles before payment if provided
+    if (vehicles && vehicles.length > 0) {
+      console.log('Saving vehicles before payment');
+      try {
+        const savedVehicles = [];
+
+        for (let i = 0; i < vehicles.length; i++) {
+          const vehicleData = vehicles[i];
+          
+          // Upload circulation card
+          let circulationCardUrl = null;
+          if (vehicleData.circulationCardBase64) {
+            const circulationCardBlob = new Uint8Array(
+              atob(vehicleData.circulationCardBase64)
+                .split('')
+                .map(char => char.charCodeAt(0))
+            );
+            
+            const fileExtension = vehicleData.circulationCardMimeType ? 
+              (vehicleData.circulationCardMimeType.includes('image') ? 'jpg' : 'pdf') : 'pdf';
+            const contentType = vehicleData.circulationCardMimeType || 'application/pdf';
+            
+            const circulationFileName = `${userData.user.id}/circulation_${Date.now()}_${i}.${fileExtension}`;
+            const { data: circulationUpload, error: circulationError } = await supabaseClient.storage
+              .from('documents')
+              .upload(circulationFileName, circulationCardBlob, {
+                contentType: contentType,
+                upsert: false
+              });
+
+            if (circulationError) {
+              console.error('Error uploading circulation card:', circulationError);
+            } else {
+              circulationCardUrl = circulationUpload.path;
+            }
+          }
+
+          // Upload INE if provided
+          let ineUrl = null;
+          if (vehicleData.ownerIneBase64) {
+            const ineBlob = new Uint8Array(
+              atob(vehicleData.ownerIneBase64)
+                .split('')
+                .map(char => char.charCodeAt(0))
+            );
+            
+            const fileExtension = vehicleData.ownerIneMimeType ? 
+              (vehicleData.ownerIneMimeType.includes('image') ? 'jpg' : 'pdf') : 'pdf';
+            const contentType = vehicleData.ownerIneMimeType || 'application/pdf';
+            
+            const ineFileName = `${userData.user.id}/ine_${Date.now()}_${i}.${fileExtension}`;
+            const { data: ineUpload, error: ineError } = await supabaseClient.storage
+              .from('documents')
+              .upload(ineFileName, ineBlob, {
+                contentType: contentType,
+                upsert: false
+              });
+
+            if (ineError) {
+              console.error('Error uploading INE:', ineError);
+            } else {
+              ineUrl = ineUpload.path;
+            }
+          }
+
+          const licensePlate = vehicleData.licensePlate || `TEMP-${Date.now()}-${i}`;
+
+          // Save vehicle to database with 'Pago pendiente' status
+          const { data: vehicle, error: vehicleError } = await supabaseClient
+            .from('vehicles')
+            .insert({
+              user_id: userData.user.id,
+              license_plate: licensePlate,
+              circulation_card_url: circulationCardUrl,
+              ine_url: ineUrl,
+              es_persona_moral: vehicleData.isCorporate || false,
+              status: 'Pago pendiente'
+            })
+            .select()
+            .single();
+
+          if (vehicleError) {
+            console.error('Error saving vehicle:', vehicleError);
+          } else {
+            savedVehicles.push(vehicle);
+          }
+        }
+
+        console.log('Successfully saved vehicles before payment:', savedVehicles.length);
+      } catch (error) {
+        console.error('Error saving vehicles before payment:', error);
+      }
+    }
 
     return new Response(
       JSON.stringify({ url: session.url }),
