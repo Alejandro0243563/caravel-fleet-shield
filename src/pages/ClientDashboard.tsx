@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { User, Car, FileText, Upload, Phone, Plus } from 'lucide-react';
+import { User, Car, FileText, Upload, Phone, Plus, Download, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { EnhancedRegistrationForm } from '@/components/EnhancedRegistrationForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -143,6 +143,49 @@ const ClientDashboard = () => {
     } catch (error) {
       console.error('Error uploading file:', error);
       toast.error('Error al subir el archivo');
+    }
+  };
+
+  const downloadFile = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Archivo descargado');
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error('Error al descargar el archivo');
+    }
+  };
+
+  const viewFile = async (filePath: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      window.open(url, '_blank');
+      
+      // Clean up after a delay
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (error) {
+      console.error('Error viewing file:', error);
+      toast.error('Error al ver el archivo');
     }
   };
 
@@ -286,32 +329,9 @@ const ClientDashboard = () => {
                             </p>
                           </div>
                           <div className="flex flex-col gap-2 w-full sm:w-auto">
-                            <div className="flex gap-2">
-                              <div>
-                                <input
-                                  type="file"
-                                  accept=".pdf,.jpg,.jpeg,.png"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      handleFileUpload(file, vehicle.id, 'circulation');
-                                    }
-                                  }}
-                                  className="hidden"
-                                  id={`circulation-${vehicle.id}`}
-                                />
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => document.getElementById(`circulation-${vehicle.id}`)?.click()}
-                                  className="flex items-center gap-1 text-xs flex-1"
-                                >
-                                  <Upload className="h-3 w-3" />
-                                  Tarjeta
-                                </Button>
-                              </div>
-                              
-                              {!vehicle.es_persona_moral && (
+                            <div className="flex flex-col gap-2">
+                              {/* Upload buttons */}
+                              <div className="flex gap-2">
                                 <div>
                                   <input
                                     type="file"
@@ -319,21 +339,93 @@ const ClientDashboard = () => {
                                     onChange={(e) => {
                                       const file = e.target.files?.[0];
                                       if (file) {
-                                        handleFileUpload(file, vehicle.id, 'ine');
+                                        handleFileUpload(file, vehicle.id, 'circulation');
                                       }
                                     }}
                                     className="hidden"
-                                    id={`ine-${vehicle.id}`}
+                                    id={`circulation-${vehicle.id}`}
                                   />
                                   <Button 
                                     variant="outline" 
                                     size="sm"
-                                    onClick={() => document.getElementById(`ine-${vehicle.id}`)?.click()}
+                                    onClick={() => document.getElementById(`circulation-${vehicle.id}`)?.click()}
                                     className="flex items-center gap-1 text-xs flex-1"
                                   >
                                     <Upload className="h-3 w-3" />
-                                    INE
+                                    Tarjeta
                                   </Button>
+                                </div>
+                                
+                                {!vehicle.es_persona_moral && (
+                                  <div>
+                                    <input
+                                      type="file"
+                                      accept=".pdf,.jpg,.jpeg,.png"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handleFileUpload(file, vehicle.id, 'ine');
+                                        }
+                                      }}
+                                      className="hidden"
+                                      id={`ine-${vehicle.id}`}
+                                    />
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm"
+                                      onClick={() => document.getElementById(`ine-${vehicle.id}`)?.click()}
+                                      className="flex items-center gap-1 text-xs flex-1"
+                                    >
+                                      <Upload className="h-3 w-3" />
+                                      INE
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* View/Download buttons for uploaded files */}
+                              {(vehicle.circulation_card_url || vehicle.ine_url) && (
+                                <div className="flex gap-1">
+                                  {vehicle.circulation_card_url && (
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => viewFile(vehicle.circulation_card_url!)}
+                                        className="text-xs p-1"
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => downloadFile(vehicle.circulation_card_url!, `tarjeta-${vehicle.license_plate}.pdf`)}
+                                        className="text-xs p-1"
+                                      >
+                                        <Download className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  )}
+                                  {vehicle.ine_url && (
+                                    <div className="flex gap-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => viewFile(vehicle.ine_url!)}
+                                        className="text-xs p-1"
+                                      >
+                                        <Eye className="h-3 w-3" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => downloadFile(vehicle.ine_url!, `ine-${vehicle.license_plate}.pdf`)}
+                                        className="text-xs p-1"
+                                      >
+                                        <Download className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>

@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Users, Car, FileText, Plus, Eye, Edit, Trash2 } from 'lucide-react';
+import { Users, Car, FileText, Plus, Eye, Edit, Trash2, Download, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface User {
@@ -123,7 +123,12 @@ const AdminDashboard = () => {
   const fetchVehicles = async () => {
     const { data: vehiclesData } = await supabase
       .from('vehicles')
-      .select('*');
+      .select(`
+        *,
+        profiles:user_id (
+          telefono
+        )
+      `);
 
     if (vehiclesData) {
       setVehicles(vehiclesData as any);
@@ -133,7 +138,15 @@ const AdminDashboard = () => {
   const fetchFines = async () => {
     const { data: finesData } = await supabase
       .from('fines')
-      .select('*');
+      .select(`
+        *,
+        vehicles (
+          license_plate,
+          profiles:user_id (
+            telefono
+          )
+        )
+      `);
 
     if (finesData) {
       setFines(finesData as any);
@@ -230,11 +243,53 @@ const AdminDashboard = () => {
     }
   };
 
+  const updateVehicleStatus = async (vehicleId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('vehicles')
+        .update({ status: newStatus as any })
+        .eq('id', vehicleId);
+
+      if (error) throw error;
+
+      toast.success('Estado del vehículo actualizado');
+      fetchVehicles();
+    } catch (error) {
+      console.error('Error updating vehicle status:', error);
+      toast.error('Error al actualizar el estado del vehículo');
+    }
+  };
+
+  const downloadFile = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('documents')
+        .download(filePath);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Archivo descargado');
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast.error('Error al descargar el archivo');
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Protegido': return 'bg-green-500';
       case 'En revisión': return 'bg-yellow-500';
       case 'Pendiente': return 'bg-orange-500';
+      case 'Pago pendiente': return 'bg-orange-400';
       case 'nueva': return 'bg-blue-500';
       case 'en proceso': return 'bg-yellow-500';
       case 'eliminada': return 'bg-red-500';
@@ -395,8 +450,9 @@ const AdminDashboard = () => {
                       <TableHead>Usuario</TableHead>
                       <TableHead>Tarjeta de Circulación</TableHead>
                       <TableHead>ID del Propietario</TableHead>
-                      <TableHead>Status Suscripción</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead>Multas</TableHead>
+                      <TableHead>Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -430,14 +486,49 @@ const AdminDashboard = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            <Badge className={getStatusColor(vehicle.status)}>
-                              {vehicle.status}
-                            </Badge>
+                            <Select
+                              value={vehicle.status}
+                              onValueChange={(value) => updateVehicleStatus(vehicle.id, value)}
+                            >
+                              <SelectTrigger className="w-40">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Pago pendiente">Pago pendiente</SelectItem>
+                                <SelectItem value="En revisión">En revisión</SelectItem>
+                                <SelectItem value="Protegido">Protegido</SelectItem>
+                                <SelectItem value="Pendiente">Pendiente</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </TableCell>
                           <TableCell>
                             <div className="space-y-1">
                               <p className="text-xs">Por eliminar: <span className="font-medium text-orange-600">{pendingFines}</span></p>
                               <p className="text-xs">Eliminadas: <span className="font-medium text-green-600">{deletedFines}</span></p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {vehicle.circulation_card_url && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => downloadFile(vehicle.circulation_card_url!, `tarjeta-${vehicle.license_plate}.pdf`)}
+                                >
+                                  <Download className="w-3 h-3 mr-1" />
+                                  Tarjeta
+                                </Button>
+                              )}
+                              {vehicle.ine_url && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => downloadFile(vehicle.ine_url!, `ine-${vehicle.license_plate}.pdf`)}
+                                >
+                                  <Download className="w-3 h-3 mr-1" />
+                                  INE
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
