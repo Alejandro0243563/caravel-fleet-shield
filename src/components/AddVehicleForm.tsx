@@ -58,6 +58,12 @@ const AddVehicleForm = ({ onClose }: AddVehicleFormProps) => {
     }
 
     try {
+      // Store current user ID for post-payment processing
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        localStorage.setItem('currentUserId', user.id);
+      }
+
       // Convert files to base64 for the API
       const vehicleWithBase64: any = {
         isCorporate: vehicleData.isCorporate,

@@ -10,63 +10,42 @@ const Success = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Save vehicles after successful payment
+  // Update vehicle status after successful payment
   useEffect(() => {
     window.scrollTo(0, 0);
     
-    const saveVehiclesData = async () => {
-      // Get vehicles data from localStorage
-      const vehiclesData = localStorage.getItem('pendingVehicles');
-      if (vehiclesData) {
+    const updateVehicleStatus = async () => {
+      // Get user from localStorage (saved before payment)
+      const userIdFromStorage = localStorage.getItem('currentUserId');
+      
+      if (userIdFromStorage) {
         try {
-          const vehicles = JSON.parse(vehiclesData);
-          
-          // Convert Files to base64 for API
-          const vehiclesWithBase64 = await Promise.all(
-            vehicles.map(async (vehicle: any) => {
-              const result: any = {
-                isCorporate: vehicle.isCorporate,
-                sameOwnerAs: vehicle.sameOwnerAs,
-                licensePlate: vehicle.licensePlate || `TEMP-${Date.now()}`
-              };
-
-              if (vehicle.circulationCard) {
-                result.circulationCardBase64 = await fileToBase64(vehicle.circulationCard);
-                result.circulationCardMimeType = vehicle.circulationCard.type;
-              }
-              
-              if (vehicle.ownerIne) {
-                result.ownerIneBase64 = await fileToBase64(vehicle.ownerIne);
-                result.ownerIneMimeType = vehicle.ownerIne.type;
-              }
-
-              return result;
-            })
-          );
-
-          const { data, error } = await supabase.functions.invoke('save-vehicles', {
-            body: { vehicles: vehiclesWithBase64 }
+          const { data, error } = await supabase.functions.invoke('update-vehicle-status', {
+            body: { userId: userIdFromStorage }
           });
 
           if (error) {
-            console.error('Error saving vehicles:', error);
+            console.error('Error updating vehicle status:', error);
             toast({
-              title: "Error al guardar vehículos",
-              description: "Hubo un problema al guardar la información de tus vehículos. Contacta al soporte.",
-              variant: "destructive",
+              title: "Aviso",
+              description: "El pago fue exitoso. Nuestro equipo verificará tu información pronto.",
+              variant: "default",
             });
           } else {
-            console.log('Vehicles saved successfully:', data);
-            // Clear pending vehicles from localStorage
-            localStorage.removeItem('pendingVehicles');
+            console.log('Vehicle status updated successfully:', data);
+            // Clear the stored user ID
+            localStorage.removeItem('currentUserId');
           }
         } catch (error) {
-          console.error('Error processing vehicles data:', error);
+          console.error('Error processing vehicle status update:', error);
         }
       }
+
+      // Clean up any remaining pending vehicles from localStorage
+      localStorage.removeItem('pendingVehicles');
     };
 
-    saveVehiclesData();
+    updateVehicleStatus();
   }, [toast]);
 
   const fileToBase64 = (file: File): Promise<string> => {

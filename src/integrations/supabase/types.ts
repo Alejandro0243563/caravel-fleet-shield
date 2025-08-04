@@ -237,7 +237,12 @@ export type Database = {
       fine_status: "Cubierta" | "Impugnada" | "Pendiente" | "Rechazada"
       lead_status: "nuevo" | "gestionado"
       user_role: "cliente" | "admin"
-      vehicle_status: "Protegido" | "En revisión" | "Pendiente" | "Inactivo"
+      vehicle_status:
+        | "Protegido"
+        | "En revisión"
+        | "Pendiente"
+        | "Inactivo"
+        | "Pago pendiente"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -368,7 +373,13 @@ export const Constants = {
       fine_status: ["Cubierta", "Impugnada", "Pendiente", "Rechazada"],
       lead_status: ["nuevo", "gestionado"],
       user_role: ["cliente", "admin"],
-      vehicle_status: ["Protegido", "En revisión", "Pendiente", "Inactivo"],
+      vehicle_status: [
+        "Protegido",
+        "En revisión",
+        "Pendiente",
+        "Inactivo",
+        "Pago pendiente",
+      ],
     },
   },
 } as const
