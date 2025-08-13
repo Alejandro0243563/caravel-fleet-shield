@@ -75,10 +75,63 @@ const AdminDashboard = () => {
     description: '',
     status: 'nueva'
   });
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewName, setPreviewName] = useState<string | undefined>(undefined);
+  const [previewType, setPreviewType] = useState<'image'|'pdf'|'other'|undefined>(undefined);
+  const [resolvingUrlFor, setResolvingUrlFor] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  const resolveFileUrl = async (urlOrPath: string, expiresIn?: number): Promise<string> => {
+    if (/^https?:\/\//i.test(urlOrPath)) {
+      return urlOrPath;
+    }
+
+    // Expect format: bucket/path/to/file
+    try {
+      const response = await fetch('/api/storage/sign-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ urlOrPath, expiresIn: expiresIn || 300 }),
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Failed to create signed URL');
+      }
+      const data = await response.json();
+      if (!data?.signedUrl) throw new Error('Signed URL not returned');
+      return data.signedUrl as string;
+    } catch (e) {
+      console.error('Error resolving file URL', e);
+      toast.error('No se pudo generar el enlace del archivo');
+      throw e;
+    }
+  };
+
+  const inferPreviewType = (name: string): 'image'|'pdf'|'other' => {
+    const lower = name.toLowerCase();
+    if (/(\.png|\.jpg|\.jpeg|\.webp)$/.test(lower)) return 'image';
+    if (/(\.pdf)$/.test(lower)) return 'pdf';
+    return 'other';
+  };
+
+  const openCardPreview = async (urlOrPath: string) => {
+    try {
+      setResolvingUrlFor(urlOrPath);
+      const signed = await resolveFileUrl(urlOrPath);
+      setPreviewUrl(signed);
+      setPreviewName(urlOrPath.split('/').pop() || 'document');
+      setPreviewType(inferPreviewType(urlOrPath));
+      setPreviewOpen(true);
+    } catch {
+      // toast shown in resolver
+    } finally {
+      setResolvingUrlFor(null);
+    }
+  };
 
   const fetchAllData = async () => {
     try {
@@ -123,7 +176,7 @@ const AdminDashboard = () => {
   const fetchVehicles = async () => {
     const { data: vehiclesData } = await supabase
       .from('vehicles')
-      .select('*');
+      .select('*, profiles(telefono)');
 
     if (vehiclesData) {
       setVehicles(vehiclesData as any);
@@ -415,7 +468,29 @@ const AdminDashboard = () => {
                           </TableCell>
                           <TableCell>
                             {vehicle.circulation_card_url ? (
-                              <Badge variant="outline" className="text-xs bg-green-50">✓ Subida</Badge>
+                              <div className="flex items-center gap-2">
+                                <Button size="sm" variant="outline" onClick={() => openCardPreview(vehicle.circulation_card_url!)} disabled={resolvingUrlFor === vehicle.circulation_card_url}>
+                                  {resolvingUrlFor === vehicle.circulation_card_url ? 'Abriendo...' : 'Ver'}
+                                </Button>
+                                <a
+                                  onClick={async (e) => {
+                                    e.preventDefault();
+                                    try {
+                                      setResolvingUrlFor(vehicle.circulation_card_url!);
+                                      const signed = await resolveFileUrl(vehicle.circulation_card_url!);
+                                      window.open(signed, '_blank', 'noopener,noreferrer');
+                                    } finally {
+                                      setResolvingUrlFor(null);
+                                    }
+                                  }}
+                                  href="#"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="ml-1 text-xs underline"
+                                >
+                                  {resolvingUrlFor === vehicle.circulation_card_url ? 'Generando...' : 'Descargar'}
+                                </a>
+                              </div>
                             ) : (
                               <Badge variant="outline" className="text-xs bg-red-50">✗ Faltante</Badge>
                             )}
@@ -701,6 +776,35 @@ const AdminDashboard = () => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Tarjeta de Circulación</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {previewUrl ? (
+              previewType === 'image' ? (
+                <img src={previewUrl} alt={previewName} className="max-h-[80vh] w-auto mx-auto rounded" />
+              ) : previewType === 'pdf' ? (
+                <iframe src={previewUrl} className="w-full h-[80vh] rounded border" />
+              ) : (
+                <div className="text-sm text-muted-foreground">Vista previa no disponible.</div>
+              )
+            ) : (
+              <div className="text-sm text-muted-foreground">Cargando vista previa...</div>
+            )}
+            <div className="flex items-center justify-end gap-2">
+              {previewUrl && (
+                <>
+                  <Button variant="outline" onClick={() => window.open(previewUrl!, '_blank', 'noopener,noreferrer')}>Abrir en nueva pestaña</Button>
+                  <a href={previewUrl || '#'} target="_blank" rel="noreferrer" download className="text-sm underline">Descargar</a>
+                </>
+              )}
+              <Button onClick={() => setPreviewOpen(false)}>Cerrar</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

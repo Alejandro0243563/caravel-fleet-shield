@@ -87,3 +87,16 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Storage signed URL API
+
+A helper API is available to sign private Supabase Storage files for preview/download in admin:
+
+- Endpoint: `POST /api/storage/sign-url`
+- Body: `{ "urlOrPath": "bucket/path/to/object.ext", "expiresIn": 300 }`
+- Returns: `{ "signedUrl": "https://..." }`
+
+Notes:
+- If `urlOrPath` is already a full `http(s)` URL, it is returned as-is.
+- The server uses `SUPABASE_SERVICE_ROLE_KEY` and never exposes it to the browser.
+- Configure `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in your environment.
