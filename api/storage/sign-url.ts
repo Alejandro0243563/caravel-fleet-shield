@@ -1,6 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Minimal handler without Next.js types to avoid adding dependencies
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method Not Allowed' });
@@ -16,7 +15,6 @@ export default async function handler(req: any, res: any) {
     }
 
     if (/^https?:\/\//i.test(urlOrPath)) {
-      // Already a public URL
       res.status(200).json({ signedUrl: urlOrPath });
       return;
     }
