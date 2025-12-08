@@ -20,7 +20,7 @@ serve(async (req) => {
         const resend = new Resend(resendApiKey);
 
         const { data, error } = await resend.emails.send({
-            from: 'Caravel Test <onboarding@resend.dev>',
+            from: 'Caravel Test <noreply@caravel.com.mx>',
             to: ['caravel@gmail.com', 'acalderoncha@gmail.com', 'santiagocalderonchavez@gmail.com'],
             subject: '🧪 Prueba de Notificación - Caravel',
             html: `
