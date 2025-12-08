@@ -87,7 +87,7 @@ Deno.serve(async (req) => {
         const customerEmail = session.customer_details?.email || 'No email provided';
 
         await resend.emails.send({
-          from: 'Caravel Notificaciones <onboarding@resend.dev>', // Update this to your verified domain
+          from: 'Caravel Notificaciones <noreply@caravel.com.mx>', // Update this to your verified domain
           to: ['caravel@gmail.com', 'acalderoncha@gmail.com', 'santiagocalderonchavez@gmail.com'],
           subject: '💰 Nuevo Pago Recibido - Caravel Fleet Shield',
           html: `
