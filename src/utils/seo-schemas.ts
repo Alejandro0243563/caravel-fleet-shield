@@ -4,7 +4,7 @@ export const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "CARAVEL",
-  "url": "https://caravel.com",
+  "url": "https://caravel.com.mx",
   "logo": "/lovable-uploads/baa877cc-6d08-4d7e-ba07-2f4a014b2a59.png",
   "description": "Protección integral contra multas vehiculares en México",
   "address": {
@@ -26,11 +26,11 @@ export const websiteSchema = {
   "@context": "https://schema.org",
   "@type": "WebSite",
   "name": "CARAVEL",
-  "url": "https://caravel.com",
+  "url": "https://caravel.com.mx",
   "description": "Protege tu flotilla contra multas vehiculares en México desde $200/mes",
   "potentialAction": {
     "@type": "SearchAction",
-    "target": "https://caravel.com/?q={search_term_string}",
+    "target": "https://caravel.com.mx/?q={search_term_string}",
     "query-input": "required name=search_term_string"
   }
 };
@@ -74,7 +74,7 @@ export const faqSchema = {
       }
     },
     {
-      "@type": "Question", 
+      "@type": "Question",
       "name": "¿En qué estados de México opera CARAVEL?",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -92,7 +92,7 @@ export const faqSchema = {
   ]
 };
 
-export const breadcrumbSchema = (items: Array<{name: string, url: string}>) => ({
+export const breadcrumbSchema = (items: Array<{ name: string, url: string }>) => ({
   "@context": "https://schema.org",
   "@type": "BreadcrumbList",
   "itemListElement": items.map((item, index) => ({

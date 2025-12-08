@@ -52,7 +52,7 @@ const Index = () => {
         title="CARAVEL - Impugnación de Multas Jalisco y Defensa Vehicular"
         description="Expertos en eliminación e impugnación de multas en Jalisco y todo México. Caravel protege tu flotilla con blindaje legal, gestión vehicular y cero mordidas."
         keywords="Multas Jalisco, Impugnacion de multas, Multas, Caravel, Defensa vehicular, Cancelación de multas, Abogados de tránsito, Gestoría vehicular, Fotomultas Guadalajara"
-        canonical="https://caravel.com/"
+        canonical="https://caravel.com.mx/"
         jsonLd={combinedJsonLd}
       />
       <div className="min-h-screen bg-background overflow-x-hidden">

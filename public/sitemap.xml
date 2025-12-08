@@ -2,33 +2,33 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://caravel.com/</loc>
+    <loc>https://caravel.com.mx/</loc>
     <lastmod>2025-12-08</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link
       rel="alternate"
       hreflang="es-MX"
-      href="https://caravel.com/" />
+      href="https://caravel.com.mx/" />
   </url>
   <url>
-    <loc>https://caravel.com/registro</loc>
-    <lastmod>2024-12-03</lastmod>
+    <loc>https://caravel.com.mx/registro</loc>
+    <lastmod>2025-12-08</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link
       rel="alternate"
       hreflang="es-MX"
-      href="https://caravel.com/registro" />
+      href="https://caravel.com.mx/registro" />
   </url>
   <url>
-    <loc>https://caravel.com/terminos-y-condiciones</loc>
-    <lastmod>2024-12-03</lastmod>
+    <loc>https://caravel.com.mx/terminos-y-condiciones</loc>
+    <lastmod>2025-12-08</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
     <xhtml:link
       rel="alternate"
       hreflang="es-MX"
-      href="https://caravel.com/terminos-y-condiciones" />
+      href="https://caravel.com.mx/terminos-y-condiciones" />
   </url>
 </urlset>
