@@ -49,8 +49,9 @@ const Index = () => {
   return (
     <>
       <SEO
-        title="CARAVEL - Protección contra multas desde $200/mes"
-        description="Protege tu flotilla contra multas vehiculares en México. Servicio legal, transparente y sin mordidas desde $200 MXN/mes por vehículo."
+        title="CARAVEL - Impugnación de Multas Jalisco y Defensa Vehicular"
+        description="Expertos en eliminación e impugnación de multas en Jalisco y todo México. Caravel protege tu flotilla con blindaje legal, gestión vehicular y cero mordidas."
+        keywords="Multas Jalisco, Impugnacion de multas, Multas, Caravel, Defensa vehicular, Cancelación de multas, Abogados de tránsito, Gestoría vehicular, Fotomultas Guadalajara"
         canonical="https://caravel.com/"
         jsonLd={combinedJsonLd}
       />
