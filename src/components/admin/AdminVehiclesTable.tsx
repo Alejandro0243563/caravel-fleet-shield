@@ -37,6 +37,13 @@ interface Vehicle {
 
 const ITEMS_PER_PAGE = 10;
 
+// Helper to get public URL
+const publicFileUrl = (path?: string | null) => {
+    if (!path) return undefined;
+    if (/^https?:\/\//i.test(path)) return path;
+    return supabase.storage.from('documents').getPublicUrl(path).data.publicUrl;
+};
+
 export const AdminVehiclesTable = () => {
     const [vehicles, setVehicles] = useState<Vehicle[]>([]);
     const [loading, setLoading] = useState(true);
@@ -289,7 +296,7 @@ export const AdminVehiclesTable = () => {
                                     <TableCell>
                                         {vehicle.circulation_card_url ? (
                                             <a
-                                                href={vehicle.circulation_card_url}
+                                                href={publicFileUrl(vehicle.circulation_card_url)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-primary hover:underline text-sm font-medium"
@@ -307,7 +314,7 @@ export const AdminVehiclesTable = () => {
                                             </Badge>
                                         ) : vehicle.ine_url ? (
                                             <a
-                                                href={vehicle.ine_url}
+                                                href={publicFileUrl(vehicle.ine_url)}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 className="text-primary hover:underline text-sm font-medium"
