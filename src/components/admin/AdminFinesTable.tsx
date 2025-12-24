@@ -10,6 +10,39 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet";
+import {
+    Eye,
+    MoreVertical,
+    FileText,
+    AlertCircle,
+    CheckCircle2,
+    Trash2,
+    Upload,
+    Download,
+    Scale,
+    Gavel,
+    History
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface Fine {
     id: string;
@@ -22,8 +55,10 @@ interface Fine {
         license_plate: string;
         profiles?: {
             telefono: string;
+            full_name?: string | null;
         };
     };
+    legal_documents?: Array<{ name: string; url: string }>;
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -47,6 +82,11 @@ export const AdminFinesTable = () => {
     });
     const [availableVehicles, setAvailableVehicles] = useState<{ id: string, license_plate: string }[]>([]);
     const [loadingVehicles, setLoadingVehicles] = useState(false);
+
+    // Detail View State
+    const [selectedFine, setSelectedFine] = useState<Fine | null>(null);
+    const [isDetailOpen, setIsDetailOpen] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     useEffect(() => {
         fetchFines();
@@ -85,7 +125,7 @@ export const AdminFinesTable = () => {
                 .select('*', { count: 'exact' });
 
             if (statusFilter && statusFilter !== 'all') {
-                query = query.eq('status', statusFilter);
+                query = query.eq('status', statusFilter as any);
             }
 
             const from = (page - 1) * ITEMS_PER_PAGE;
@@ -111,7 +151,7 @@ export const AdminFinesTable = () => {
                 // 3. Fetch profiles
                 const { data: profilesData } = await supabase
                     .from('profiles')
-                    .select('user_id, telefono')
+                    .select('user_id, telefono, full_name')
                     .in('user_id', userIds);
 
                 // 4. Join data
@@ -126,18 +166,19 @@ export const AdminFinesTable = () => {
 
                     return {
                         ...fine,
-                        vehicles: {
-                            license_plate: vehicle?.license_plate || 'Desconocido',
-                            profiles: {
-                                telefono: profile?.telefono || 'Sin teléfono'
-                            }
-                        }
+                        vehicles: vehicle ? {
+                            license_plate: vehicle.license_plate,
+                            profiles: profile || { telefono: 'Sin teléfono', full_name: 'Sin nombre' }
+                        } : undefined
                     };
-                }).filter(Boolean) as Fine[];
+                }).filter(Boolean) as unknown as Fine[];
 
                 setFines(finesWithDetails);
             } else {
-                setFines([]);
+                if (finesError) throw finesError;
+                setFines(finesData as any);
+                setTotalCount(count || 0);
+                setTotalPages(Math.ceil((count || 0) / ITEMS_PER_PAGE));
             }
 
             if (count !== null) {
@@ -199,11 +240,89 @@ export const AdminFinesTable = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case 'Cubierta': return 'bg-green-100 text-green-800 border-green-200';
-            case 'Pendiente': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-            case 'Impugnada': return 'bg-blue-100 text-blue-800 border-blue-200';
-            case 'Rechazada': return 'bg-red-100 text-red-800 border-red-200';
-            default: return 'bg-gray-100 text-gray-800 border-gray-200';
+            case 'Cubierta': return 'bg-green-500 hover:bg-green-600 text-white border-0';
+            case 'Pendiente': return 'bg-yellow-500 hover:bg-yellow-600 text-white border-0';
+            case 'Impugnada': return 'bg-blue-500 hover:bg-blue-600 text-white border-0';
+            case 'Rechazada': return 'bg-red-500 hover:bg-red-600 text-white border-0';
+            default: return 'bg-gray-500 text-white border-0';
+        }
+    };
+
+    const publicFileUrl = (path?: string | null) => {
+        if (!path) return undefined;
+        if (/^https?:\/\//i.test(path)) return path;
+        return supabase.storage.from('documents').getPublicUrl(path).data.publicUrl;
+    };
+
+    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !selectedFine) return;
+
+        try {
+            setUploading(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = `legal_files/${selectedFine.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('documents')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const newDoc = { name: file.name, url: filePath };
+            const currentDocs = selectedFine.legal_documents || [];
+            const updatedDocs = [...currentDocs, newDoc];
+
+            const { error: dbError } = await supabase
+                .from('fines')
+                .update({ legal_documents: updatedDocs })
+                .eq('id', selectedFine.id);
+
+            if (dbError) throw dbError;
+
+            const updatedFine = { ...selectedFine, legal_documents: updatedDocs };
+            setSelectedFine(updatedFine);
+            setFines(prev => prev.map(f => f.id === selectedFine.id ? updatedFine : f));
+            toast.success('Documento legal subido');
+            fetchFines();
+        } catch (error: any) {
+            console.error('Error uploading:', error);
+            toast.error('Error al subir documento');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const deleteLegalDoc = async (docUrl: string) => {
+        if (!selectedFine || !docUrl) return;
+
+        try {
+            setUploading(true);
+            const { error: storageError } = await supabase.storage
+                .from('documents')
+                .remove([docUrl]);
+
+            if (storageError) throw storageError;
+
+            const updatedDocs = (selectedFine.legal_documents || []).filter(d => d.url !== docUrl);
+
+            const { error: dbError } = await supabase
+                .from('fines')
+                .update({ legal_documents: updatedDocs as any } as any)
+                .eq('id', selectedFine.id);
+
+            if (dbError) throw dbError;
+
+            const updatedFine = { ...selectedFine, legal_documents: updatedDocs };
+            setSelectedFine(updatedFine);
+            setFines(prev => prev.map(f => f.id === selectedFine.id ? updatedFine : f));
+            toast.success('Documento eliminado');
+        } catch (error: any) {
+            console.error('Error deleting:', error);
+            toast.error('Error al eliminar documento');
+        } finally {
+            setUploading(false);
         }
     };
 
@@ -314,16 +433,16 @@ export const AdminFinesTable = () => {
                 </Dialog>
             </div>
 
-            <div className="rounded-md border">
+            <div className="rounded-md border overflow-hidden">
                 <Table>
-                    <TableHeader>
+                    <TableHeader className="bg-muted/50">
                         <TableRow>
-                            <TableHead>Placa</TableHead>
-                            <TableHead>Propietario</TableHead>
-                            <TableHead>Monto</TableHead>
-                            <TableHead>Descripción</TableHead>
-                            <TableHead>Estado</TableHead>
-                            <TableHead>Acciones</TableHead>
+                            <TableHead className="w-[150px]">Vehículo</TableHead>
+                            <TableHead className="w-[180px]">Propietario / Contacto</TableHead>
+                            <TableHead className="w-[120px]">Monto</TableHead>
+                            <TableHead>Detalle / Motivo</TableHead>
+                            <TableHead className="w-[160px]">Estado Legal</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -341,39 +460,79 @@ export const AdminFinesTable = () => {
                             </TableRow>
                         ) : (
                             fines.map((fine) => (
-                                <TableRow key={fine.id}>
-                                    <TableCell className="font-medium">
-                                        {fine.vehicles?.license_plate || '—'}
+                                <TableRow
+                                    key={fine.id}
+                                    className="hover:bg-muted/50 transition-colors cursor-pointer group"
+                                    onClick={() => {
+                                        setSelectedFine(fine);
+                                        setIsDetailOpen(true);
+                                    }}
+                                >
+                                    <TableCell className="py-4">
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-sm tracking-tight">{fine.vehicles?.license_plate || '—'}</span>
+                                            <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">Vehículo Registrado</span>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
-                                        {fine.vehicles?.profiles?.telefono || '—'}
+                                        <div className="flex flex-col">
+                                            <span className="font-bold text-sm text-foreground">{fine.vehicles?.profiles?.full_name || 'Sin nombre'}</span>
+                                            <span className="text-xs text-muted-foreground font-medium">{fine.vehicles?.profiles?.telefono || '—'}</span>
+                                        </div>
                                     </TableCell>
                                     <TableCell>
-                                        ${fine.amount.toFixed(2)}
+                                        <span className="font-bold text-sm text-foreground">
+                                            ${fine.amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                        </span>
                                     </TableCell>
                                     <TableCell>
-                                        {fine.description || '-'}
+                                        <p className="text-sm text-muted-foreground line-clamp-1 max-w-[200px]">
+                                            {fine.description || 'Sin descripción detallada'}
+                                        </p>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge className={getStatusColor(fine.status)}>
-                                            {fine.status}
-                                        </Badge>
+                                        <div className="flex flex-col gap-1.5">
+                                            <Select
+                                                value={fine.status}
+                                                onValueChange={(value) => updateFineStatus(fine.id, value)}
+                                            >
+                                                <SelectTrigger
+                                                    className={cn(
+                                                        "w-36 h-8 text-[11px] font-bold rounded-full transition-all border-0 focus:ring-0",
+                                                        getStatusColor(fine.status)
+                                                    )}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                                    <SelectItem value="Cubierta">Cubierta</SelectItem>
+                                                    <SelectItem value="Impugnada">Impugnada</SelectItem>
+                                                    <SelectItem value="Rechazada">Rechazada</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     </TableCell>
-                                    <TableCell>
-                                        <Select
-                                            value={fine.status}
-                                            onValueChange={(value) => updateFineStatus(fine.id, value)}
-                                        >
-                                            <SelectTrigger className="w-32 h-8">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="Pendiente">Pendiente</SelectItem>
-                                                <SelectItem value="Cubierta">Cubierta</SelectItem>
-                                                <SelectItem value="Impugnada">Impugnada</SelectItem>
-                                                <SelectItem value="Rechazada">Rechazada</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted-foreground/10">
+                                                    <MoreVertical className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end" className="w-48">
+                                                <DropdownMenuItem onClick={() => { setSelectedFine(fine); setIsDetailOpen(true); }}>
+                                                    <Scale className="mr-2 h-4 w-4 text-primary" />
+                                                    <span>Gestión de Expediente</span>
+                                                </DropdownMenuItem>
+                                                <div className="border-t my-1"></div>
+                                                <DropdownMenuItem className="text-destructive">
+                                                    <Trash2 className="mr-2 h-4 w-4" />
+                                                    <span>Eliminar Registro</span>
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
                             ))
@@ -409,6 +568,142 @@ export const AdminFinesTable = () => {
                     </Button>
                 </div>
             </div>
+
+            <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+                <SheetContent className="sm:max-w-xl overflow-y-auto">
+                    <SheetHeader className="border-b pb-6 mb-6">
+                        <div className="flex items-center gap-3 mb-2">
+                            <div className="bg-primary/10 p-2 rounded-lg text-primary">
+                                <Scale className="h-6 w-6" />
+                            </div>
+                            <SheetTitle className="text-2xl font-bold tracking-tight">Expediente Legal del Caso</SheetTitle>
+                        </div>
+                        <SheetDescription className="text-base">
+                            Gestión de documentos relativos al juicio/multa del vehículo <span className="font-bold text-foreground">{selectedFine?.vehicles?.license_plate}</span>
+                        </SheetDescription>
+                    </SheetHeader>
+
+                    {selectedFine && (
+                        <div className="space-y-8">
+                            {/* General Info */}
+                            <section className="bg-muted/30 p-5 rounded-2xl border border-border/50">
+                                <div className="grid grid-cols-2 gap-6">
+                                    <div className="space-y-1">
+                                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider underline decoration-primary/30 underline-offset-4">ID de Seguimiento</div>
+                                        <div className="text-sm font-mono font-bold">#{selectedFine.id.slice(0, 8).toUpperCase()}</div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider underline decoration-primary/30 underline-offset-4">Monto Judicial</div>
+                                        <div className="text-sm font-bold text-primary">${selectedFine.amount.toLocaleString()} MXN</div>
+                                    </div>
+                                    <div className="col-span-2 pt-2 border-t border-muted-foreground/10">
+                                        <div className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Causa / Motivo</div>
+                                        <p className="text-sm text-foreground/80 leading-relaxed font-medium">
+                                            {selectedFine.description || 'Sin causa legal registrada.'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Expediente Section */}
+                            <section className="space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                                        <Gavel className="h-4 w-4" />
+                                        Documentación del Juicio
+                                    </h3>
+                                    <label className="cursor-pointer">
+                                        <Input
+                                            type="file"
+                                            className="hidden"
+                                            onChange={handleFileUpload}
+                                            disabled={uploading}
+                                        />
+                                        <Button variant="outline" size="sm" asChild disabled={uploading} className="rounded-full shadow-sm">
+                                            <span>
+                                                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" /> : <Upload className="h-3.5 w-3.5 mr-2" />}
+                                                Subir Documento
+                                            </span>
+                                        </Button>
+                                    </label>
+                                </div>
+
+                                <div className="bg-muted/10 p-5 rounded-2xl border-2 border-dashed border-muted min-h-[200px]">
+                                    {(!selectedFine.legal_documents || selectedFine.legal_documents.length === 0) ? (
+                                        <div className="h-full flex flex-col items-center justify-center text-center py-8 space-y-3">
+                                            <div className="bg-white p-3 rounded-full shadow-sm border">
+                                                <FileText className="h-8 w-8 text-muted-foreground/30" />
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-bold text-muted-foreground">Expediente Vacío</p>
+                                                <p className="text-[11px] text-muted-foreground/60">No hay documentos cargados en este juicio.</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {selectedFine.legal_documents.map((doc, idx) => (
+                                                <div key={idx} className="flex items-center justify-between p-3 bg-white rounded-xl border shadow-sm group hover:ring-2 hover:ring-primary/20 transition-all">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="bg-primary/5 p-2 rounded-lg text-primary">
+                                                            <Upload className="h-4 w-4" />
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm font-bold truncate max-w-[200px]">{doc.name}</span>
+                                                            <span className="text-[10px] text-muted-foreground">Documento Adjunto</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <Button variant="ghost" size="icon" asChild className="h-8 w-8 text-primary">
+                                                            <a href={publicFileUrl(doc.url)} target="_blank" rel="noopener noreferrer">
+                                                                <Download className="h-4 w-4" />
+                                                            </a>
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-8 w-8 text-destructive"
+                                                            onClick={() => deleteLegalDoc(doc.url)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+
+                            {/* Historial de Estatus */}
+                            <section className="bg-primary/5 p-5 rounded-2xl border border-primary/10">
+                                <h3 className="text-[11px] font-bold uppercase tracking-wider text-primary/70 mb-4 flex items-center gap-2">
+                                    <History className="h-3.5 w-3.5" />
+                                    Actualizar Estatus Procesal
+                                </h3>
+                                <div className="flex flex-col gap-4">
+                                    <Select
+                                        value={selectedFine.status}
+                                        onValueChange={(value) => updateFineStatus(selectedFine.id, value)}
+                                    >
+                                        <SelectTrigger className={cn("w-full h-11 font-bold text-sm", getStatusColor(selectedFine.status))}>
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="Pendiente">Pendiente</SelectItem>
+                                            <SelectItem value="Cubierta">Cubierta</SelectItem>
+                                            <SelectItem value="Impugnada">Impugnada (En Juicio)</SelectItem>
+                                            <SelectItem value="Rechazada">Rechazada</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-[10px] text-muted-foreground text-center italic">
+                                        Al cambiar el estado, el cliente podrá ver la actualización en su portal de forma inmediata.
+                                    </p>
+                                </div>
+                            </section>
+                        </div>
+                    )}
+                </SheetContent>
+            </Sheet>
         </div>
     );
 };

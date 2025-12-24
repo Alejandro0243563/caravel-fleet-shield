@@ -10,10 +10,14 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate('/auth');
+    if (!loading) {
+      if (!user) {
+        navigate('/auth');
+      } else if (userRole === 'cliente') {
+        navigate('/clientdashboard');
+      }
     }
-  }, [user, loading, navigate]);
+  }, [user, userRole, loading, navigate]);
 
   if (loading) {
     return (
@@ -30,10 +34,8 @@ const Dashboard = () => {
     return null; // Will redirect to auth
   }
 
-  // Render dashboard based on user role
-  // FOR TESTING ONLY: Force admin view
-  const forcedRole = 'admin';
-  if (forcedRole === 'admin' || userRole === 'admin') {
+  // At this point, only admins should be viewing /dashboard
+  if (userRole === 'admin') {
     return (
       <>
         <SEO
@@ -47,16 +49,14 @@ const Dashboard = () => {
     );
   }
 
+  // Fallback for users during redirect
   return (
-    <>
-      <SEO
-        title="Mi Dashboard - CARAVEL México"
-        description="Gestiona tu protección contra multas, vehículos registrados y estado de suscripción CARAVEL."
-        canonical="https://caravel.com/dashboard"
-        noIndex={true}
-      />
-      <ClientDashboard />
-    </>
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+        <p className="mt-4 text-lg">Redirigiendo...</p>
+      </div>
+    </div>
   );
 };
 
